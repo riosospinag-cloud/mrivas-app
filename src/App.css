@@ -1,18 +1,17 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0a1f44, #1e3a8a);
+  background: linear-gradient(135deg, #071a3a, #123b7a);
 }
 
 .login-container {
-  background: white;
-  color: #333;
-  padding: 40px;
-  border-radius: 16px;
-  width: 320px;
-  margin: 100px auto 0 auto;
+  width: 360px;
+  margin: 80px auto 0 auto;
+  padding: 36px;
+  background: #ffffff;
+  border-radius: 22px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
 .login-logo {
@@ -21,31 +20,59 @@ body {
   display: block;
   margin: 0 auto 30px auto;
   background: white;
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  padding: 12px;
+  border-radius: 14px;
 }
 
+.login-title {
+  margin: 0;
+  font-size: 24px;
+  color: #071a3a;
+}
+
+.login-subtitle {
+  margin: 8px 0 28px;
+  color: #6b7280;
+  font-size: 15px;
+}
 
 input {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 13px 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
 }
 
 button {
-  margin-top: 15px;
-  padding: 10px;
   width: 100%;
-  background: #1e3a8a;
+  padding: 14px;
+  margin-top: 8px;
+  background: #0a1f44;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
 }
 
 button:hover {
-  background: #0a1f44;
+  background: #1e3a8a;
+}
+
+.login-register {
+  margin-top: 22px;
+  color: #6b7280;
+}
+
+.login-register strong {
+  color: #1e3a8a;
 }
