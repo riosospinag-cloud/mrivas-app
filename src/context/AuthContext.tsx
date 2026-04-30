@@ -15,20 +15,31 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(null)
+
+  const [user, setUser] = useState<User>(() => {
+    const storedUser = localStorage.getItem("user")
+    return storedUser ? JSON.parse(storedUser) : null
+  })
 
   const login = (email: string, _password: string) => {
     if (email === "admin") {
-      setUser({ email, role: "admin" })
+      const userData = { email, role: "admin" as const }
+      setUser(userData)
+      localStorage.setItem("user", JSON.stringify(userData))
     } else if (email === "driver") {
-      setUser({ email, role: "driver" })
+      const userData = { email, role: "driver" as const }
+      setUser(userData)
+      localStorage.setItem("user", JSON.stringify(userData))
     } else {
-      setUser({ email, role: "client" })
+      const userData = { email, role: "client" as const }
+      setUser(userData)
+      localStorage.setItem("user", JSON.stringify(userData))
     }
   }
 
   const logout = () => {
     setUser(null)
+    localStorage.removeItem("user")
   }
 
   return (
