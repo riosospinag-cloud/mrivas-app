@@ -16,14 +16,16 @@ body {
 }
 
 .login-logo {
-  width: 220px;
+  width: 260px;
   height: auto;
   display: block;
   margin: 0 auto 30px auto;
-  background: #0a1f44;
-  padding: 12px;
+  background: white;
+  padding: 15px;
   border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
+
 
 input {
   width: 100%;
