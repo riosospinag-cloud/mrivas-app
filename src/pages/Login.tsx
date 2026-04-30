@@ -46,13 +46,13 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
-    try {
-      await loginWithGoogle()
-    } catch (error) {
-      console.error("Error Google:", error)
-      alert("Error en login con Google")
-    }
+  try {
+    await loginWithGoogle()
+  } catch (error: any) {
+    console.error("ERROR GOOGLE COMPLETO:", error)
+    alert(`Error Google: ${error.code || error.message}`)
   }
+}
 
   return (
     <div className="login-container">
