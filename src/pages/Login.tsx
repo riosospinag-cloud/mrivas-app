@@ -1,20 +1,18 @@
+import logoMrivas from "../assets/logo-mrivas.png"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import "../App.css"
+import { useAuth } from "../context/AuthContext"
 
 export default function Login() {
-  const navigate = useNavigate()
-
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      alert("Completa todos los campos")
-      return
-    }
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
-    // Simulación de roles (luego será backend real)
+  const handleLogin = () => {
+    login(email, password)
+
     if (email === "admin") {
       navigate("/admin")
     } else if (email === "driver") {
@@ -25,40 +23,25 @@ export default function Login() {
   }
 
   return (
-    <div style={{ textAlign: "center", marginTop: "100px" }}>
-      <h1>M. RIVAS</h1>
-      <h3>TRANSPORTE EMPRESARIAL</h3>
+    <div className="login-container">
+     <img src={logoMrivas} alt="M. Rivas" className="login-logo" />
 
-      <h2>Bienvenido de vuelta 👋</h2>
-      <p>Inicia sesión para continuar</p>
+      <input
+        placeholder="Correo"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <br /><br />
 
-      <div style={{ marginTop: "20px" }}>
-        <input
-          type="text"
-          placeholder="Correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
+      <input
+        type="password"
+        placeholder="Contraseña"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <br /><br />
 
-      <div style={{ marginTop: "10px" }}>
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-
-      <div style={{ marginTop: "20px" }}>
-        <button onClick={handleLogin}>
-          Iniciar sesión
-        </button>
-      </div>
-
-      <p style={{ marginTop: "15px" }}>
-        ¿No tienes cuenta? <strong>Regístrate</strong>
-      </p>
+      <button onClick={handleLogin}>Iniciar sesión</button>
     </div>
   )
 }
