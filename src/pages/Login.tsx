@@ -11,24 +11,41 @@ export default function Login() {
   const navigate = useNavigate()
 
   const handleLogin = () => {
-  if (!email || !password) {
-    alert("Completa todos los campos")
-    return
+    if (!email || !password) {
+      alert("Completa todos los campos")
+      return
+    }
+
+    if (email === "admin" && password === "123") {
+      login(email, password)
+      navigate("/admin")
+    } else if (email === "driver" && password === "123") {
+      login(email, password)
+      navigate("/driver")
+    } else if (email === "client" && password === "123") {
+      login(email, password)
+      navigate("/client")
+    } else {
+      alert("Credenciales incorrectas")
+    }
   }
 
-  if (email === "admin" && password === "123") {
-    login(email, password)
-    navigate("/admin")
-  } else if (email === "driver" && password === "123") {
-    login(email, password)
-    navigate("/driver")
-  } else if (email === "client" && password === "123") {
-    login(email, password)
-    navigate("/client")
-  } else {
-    alert("Credenciales incorrectas")
+  const handleGoogleLogin = async () => {
+    try {
+      const user = await loginWithGoogle()
+
+      console.log("Usuario Google:", user)
+
+      localStorage.setItem("user", JSON.stringify(user))
+
+      alert("Login con Google exitoso")
+
+      navigate("/client")
+    } catch (error) {
+      console.error("ERROR GOOGLE:", error)
+      alert("Error en login con Google. Abre F12 → Console")
+    }
   }
-}
 
   return (
     <div className="login-container">
@@ -51,15 +68,11 @@ export default function Login() {
       />
 
       <button onClick={handleLogin}>Iniciar sesión</button>
-<button
-  type="button"
-  onClick={async () => {
-    const user = await loginWithGoogle()
-    console.log(user)
-  }}
->
-  Iniciar con Google
-</button>
+
+      <button type="button" onClick={handleGoogleLogin}>
+        Iniciar con Google
+      </button>
+
       <p className="login-register">
         ¿No tienes cuenta? <strong>Regístrate</strong>
       </p>
