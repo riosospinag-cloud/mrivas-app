@@ -1,3 +1,4 @@
+import { loginWithGoogle } from "../services/auth"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
@@ -50,7 +51,15 @@ export default function Login() {
       />
 
       <button onClick={handleLogin}>Iniciar sesión</button>
-
+<button
+  type="button"
+  onClick={async () => {
+    const user = await loginWithGoogle()
+    console.log(user)
+  }}
+>
+  Iniciar con Google
+</button>
       <p className="login-register">
         ¿No tienes cuenta? <strong>Regístrate</strong>
       </p>
