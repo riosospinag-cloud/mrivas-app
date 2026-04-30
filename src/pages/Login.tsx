@@ -10,16 +10,24 @@ export default function Login() {
   const navigate = useNavigate()
 
   const handleLogin = () => {
-    login(email, password)
-
-    if (email === "admin") {
-      navigate("/admin")
-    } else if (email === "driver") {
-      navigate("/driver")
-    } else {
-      navigate("/client")
-    }
+  if (!email || !password) {
+    alert("Completa todos los campos")
+    return
   }
+
+  if (email === "admin" && password === "123") {
+    login(email, password)
+    navigate("/admin")
+  } else if (email === "driver" && password === "123") {
+    login(email, password)
+    navigate("/driver")
+  } else if (email === "client" && password === "123") {
+    login(email, password)
+    navigate("/client")
+  } else {
+    alert("Credenciales incorrectas")
+  }
+}
 
   return (
     <div className="login-container">
