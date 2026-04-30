@@ -1,5 +1,11 @@
-import { initializeApp } from "firebase/app"
-import { getAuth, GoogleAuthProvider } from "firebase/auth"
+import { onAuthStateChanged } from "firebase/auth"
+import { auth } from "./firebase"
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("Usuario logueado:", user)
+  }
+})
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPQLOPofTJSqSt7I5xSaq9GAaq9RqJLuI",

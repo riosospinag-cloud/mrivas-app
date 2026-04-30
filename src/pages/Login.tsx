@@ -10,6 +10,12 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
+  // 🔥 Mapa de roles (editable)
+  const roles: Record<string, string> = {
+    "riosospinag@gmail.com": "admin",
+    "kevin.r.h250298@gmail.com": "client"
+  }
+
   // 🔥 Detecta usuario después de login con Google
   useEffect(() => {
     const checkUser = async () => {
@@ -18,7 +24,16 @@ export default function Login() {
       if (user) {
         console.log("Usuario Google:", user)
         localStorage.setItem("user", JSON.stringify(user))
-        navigate("/client")
+
+        const role = roles[user.email || ""]
+
+        if (role === "admin") {
+          navigate("/admin")
+        } else if (role === "driver") {
+          navigate("/driver")
+        } else {
+          navigate("/client")
+        }
       }
     }
 
@@ -46,13 +61,13 @@ export default function Login() {
   }
 
   const handleGoogleLogin = async () => {
-  try {
-    await loginWithGoogle()
-  } catch (error: any) {
-    console.error("ERROR GOOGLE COMPLETO:", error)
-    alert(`Error Google: ${error.code || error.message}`)
+    try {
+      await loginWithGoogle()
+    } catch (error: any) {
+      console.error("ERROR GOOGLE COMPLETO:", error)
+      alert(`Error Google: ${error.code || error.message}`)
+    }
   }
-}
 
   return (
     <div className="login-container">
