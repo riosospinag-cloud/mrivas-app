@@ -1,5 +1,5 @@
-import { loginWithGoogle } from "../services/auth"
-import { useState } from "react"
+import { loginWithGoogle, getGoogleRedirectUser } from "../services/auth"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 
@@ -9,6 +9,21 @@ export default function Login() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // 🔥 Detecta usuario después de login con Google
+  useEffect(() => {
+    const checkUser = async () => {
+      const user = await getGoogleRedirectUser()
+
+      if (user) {
+        console.log("Usuario Google:", user)
+        localStorage.setItem("user", JSON.stringify(user))
+        navigate("/client")
+      }
+    }
+
+    checkUser()
+  }, [])
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -32,18 +47,10 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      const user = await loginWithGoogle()
-
-      console.log("Usuario Google:", user)
-
-      localStorage.setItem("user", JSON.stringify(user))
-
-      alert("Login con Google exitoso")
-
-      navigate("/client")
+      await loginWithGoogle()
     } catch (error) {
-      console.error("ERROR GOOGLE:", error)
-      alert("Error en login con Google. Abre F12 → Console")
+      console.error("Error Google:", error)
+      alert("Error en login con Google")
     }
   }
 
