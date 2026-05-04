@@ -10,29 +10,30 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  // 🔥 Mapa de roles (editable)
-  const roles: Record<string, string> = {
-    "riosospinag@gmail.com": "admin",
-    "kevin.r.h250298@gmail.com": "client"
+  // 🔥 función para redirigir según rol
+  const goByRole = (role: string) => {
+    if (role === "admin") {
+      navigate("/admin")
+    } else if (role === "driver") {
+      navigate("/driver")
+    } else {
+      navigate("/client")
+    }
   }
 
-  // 🔥 Detecta usuario después de login con Google
+  // 🔥 Detecta usuario después del redirect de Google
   useEffect(() => {
     const checkUser = async () => {
-      const user = await getGoogleRedirectUser()
+      const googleUser = await getGoogleRedirectUser()
 
-      if (user) {
-        console.log("Usuario Google:", user)
-        localStorage.setItem("user", JSON.stringify(user))
+      if (googleUser?.email) {
+        const loggedUser = login(googleUser.email)
 
-        const role = roles[user.email || ""]
+        if (loggedUser) {
+          // 🔥 GUARDAMOS para que no te regrese al login
+          localStorage.setItem("user", JSON.stringify(loggedUser))
 
-        if (role === "admin") {
-          navigate("/admin")
-        } else if (role === "driver") {
-          navigate("/driver")
-        } else {
-          navigate("/client")
+          goByRole(loggedUser.role)
         }
       }
     }
@@ -47,14 +48,23 @@ export default function Login() {
     }
 
     if (email === "admin" && password === "123") {
-      login(email, password)
-      navigate("/admin")
+      const loggedUser = login("riosospinag@gmail.com")
+
+      if (loggedUser) {
+        goByRole(loggedUser.role)
+      }
     } else if (email === "driver" && password === "123") {
-      login(email, password)
-      navigate("/driver")
+      const loggedUser = login("driver@mrivas.com")
+
+      if (loggedUser) {
+        goByRole(loggedUser.role)
+      }
     } else if (email === "client" && password === "123") {
-      login(email, password)
-      navigate("/client")
+      const loggedUser = login("kevin.r.h250298@gmail.com")
+
+      if (loggedUser) {
+        goByRole(loggedUser.role)
+      }
     } else {
       alert("Credenciales incorrectas")
     }

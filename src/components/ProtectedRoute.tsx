@@ -3,8 +3,9 @@ import { useAuth } from "../context/AuthContext"
 
 export default function ProtectedRoute({ children }: any) {
   const { user } = useAuth()
+  const storedUser = localStorage.getItem("user")
 
-  if (!user) {
+  if (!user && !storedUser) {
     return <Navigate to="/" />
   }
 

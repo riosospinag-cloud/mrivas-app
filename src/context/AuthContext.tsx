@@ -1,40 +1,45 @@
 import { createContext, useContext, useState } from "react"
 import type { ReactNode } from "react"
 
+type Role = "admin" | "driver" | "client"
+
 type User = {
   email: string
-  role: "admin" | "driver" | "client"
+  role: Role
 } | null
 
 type AuthContextType = {
   user: User
-  login: (email: string, password: string) => void
+  login: (email: string, password?: string) => User
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+const getRoleByEmail = (email: string): Role => {
+  const roles: Record<string, Role> = {
+    "riosospinag@gmail.com": "admin",
+    "kevin.r.h250298@gmail.com": "client",
+  }
 
+  return roles[email] || "client"
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User>(() => {
     const storedUser = localStorage.getItem("user")
     return storedUser ? JSON.parse(storedUser) : null
   })
 
-  const login = (email: string, _password: string) => {
-    if (email === "admin") {
-      const userData = { email, role: "admin" as const }
-      setUser(userData)
-      localStorage.setItem("user", JSON.stringify(userData))
-    } else if (email === "driver") {
-      const userData = { email, role: "driver" as const }
-      setUser(userData)
-      localStorage.setItem("user", JSON.stringify(userData))
-    } else {
-      const userData = { email, role: "client" as const }
-      setUser(userData)
-      localStorage.setItem("user", JSON.stringify(userData))
-    }
+  const login = (email: string) => {
+    const role = getRoleByEmail(email)
+
+    const userData = { email, role }
+
+    setUser(userData)
+    localStorage.setItem("user", JSON.stringify(userData))
+
+    return userData
   }
 
   const logout = () => {

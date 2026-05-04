@@ -1,14 +1,8 @@
-import { onAuthStateChanged } from "firebase/auth"
-import { auth } from "./firebase"
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("Usuario logueado:", user)
-  }
-})
+import { initializeApp } from "firebase/app"
+import { getAuth, GoogleAuthProvider } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBPQLOPofTJSqSt7I5xSaq9GAaq9RqJLuI",
+  apiKey: "AIzaSyBPQLOPoFTJSqSt7I5xSaq9GAaq9RqJLuI",
   authDomain: "mrivas-app.firebaseapp.com",
   projectId: "mrivas-app",
   storageBucket: "mrivas-app.firebasestorage.app",
