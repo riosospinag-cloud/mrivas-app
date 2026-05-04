@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react"
 import type { ReactNode } from "react"
 
-type Role = "admin" | "driver" | "client"
+type Role = "superadmin" | "admin" | "driver" | "client"
 
 type User = {
   email: string
@@ -10,19 +10,17 @@ type User = {
 
 type AuthContextType = {
   user: User
-  login: (email: string, password?: string) => User
+  login: (email: string) => User
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const getRoleByEmail = (email: string): Role => {
-  const roles: Record<string, Role> = {
-    "riosospinag@gmail.com": "admin",
-    "kevin.r.h250298@gmail.com": "client",
-  }
+  if (email === "kevin.r.h250298@gmail.com") return "superadmin"
+  if (email === "riosospinag@gmail.com") return "admin"
 
-  return roles[email] || "client"
+  return "client"
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

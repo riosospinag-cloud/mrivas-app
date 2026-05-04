@@ -10,9 +10,10 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  // 🔥 función para redirigir según rol
   const goByRole = (role: string) => {
-    if (role === "admin") {
+    if (role === "superadmin") {
+      navigate("/superadmin")
+    } else if (role === "admin") {
       navigate("/admin")
     } else if (role === "driver") {
       navigate("/driver")
@@ -21,7 +22,6 @@ export default function Login() {
     }
   }
 
-  // 🔥 Detecta usuario después del redirect de Google
   useEffect(() => {
     const checkUser = async () => {
       const googleUser = await getGoogleRedirectUser()
@@ -30,9 +30,7 @@ export default function Login() {
         const loggedUser = login(googleUser.email)
 
         if (loggedUser) {
-          // 🔥 GUARDAMOS para que no te regrese al login
           localStorage.setItem("user", JSON.stringify(loggedUser))
-
           goByRole(loggedUser.role)
         }
       }
@@ -47,24 +45,24 @@ export default function Login() {
       return
     }
 
-    if (email === "admin" && password === "123") {
-      const loggedUser = login("riosospinag@gmail.com")
-
-      if (loggedUser) {
-        goByRole(loggedUser.role)
-      }
-    } else if (email === "driver" && password === "123") {
-      const loggedUser = login("driver@mrivas.com")
-
-      if (loggedUser) {
-        goByRole(loggedUser.role)
-      }
-    } else if (email === "client" && password === "123") {
+    // 🔥 SUPERADMIN
+    if (email === "superadmin" && password === "123") {
       const loggedUser = login("kevin.r.h250298@gmail.com")
 
       if (loggedUser) {
+        localStorage.setItem("user", JSON.stringify(loggedUser))
         goByRole(loggedUser.role)
       }
+
+    // 🔥 ADMIN
+    } else if (email === "admin" && password === "123") {
+      const loggedUser = login("riosospinag@gmail.com")
+
+      if (loggedUser) {
+        localStorage.setItem("user", JSON.stringify(loggedUser))
+        goByRole(loggedUser.role)
+      }
+
     } else {
       alert("Credenciales incorrectas")
     }
