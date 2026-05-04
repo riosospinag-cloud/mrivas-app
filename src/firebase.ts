@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBPQLOPoFTJSqSt7I5xSaq9GAaq9RqJLuI",
+  apiKey: "AIzaSyBPQLOPoFTJSqSt7I5xSaq9GAAq9RqJLuI",
   authDomain: "mrivas-app.firebaseapp.com",
   projectId: "mrivas-app",
   storageBucket: "mrivas-app.firebasestorage.app",
