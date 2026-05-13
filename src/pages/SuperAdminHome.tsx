@@ -1,29 +1,34 @@
-import React from "react";
+import React from "react"
+import Sidebar from "../components/Sidebar"
 
 const SuperAdminHome: React.FC = () => {
   return (
-    <div style={styles.page}>
-      <h1 style={styles.title}>Panel Superadministrador</h1>
-      <p style={styles.subtitle}>
-        Bienvenido al sistema de gestión M.Rivas
-      </p>
+    <div style={styles.layout}>
+      <Sidebar />
 
-      <div style={styles.grid}>
-        <Card title="Viajes" desc="Gestionar rutas y estados" />
-        <Card title="Conductores" desc="Administrar personal" />
-        <Card title="Vehículos" desc="Control de unidades" />
-        <Card title="Clientes" desc="Gestión comercial" />
-        <Card title="Usuarios" desc="Roles del sistema" />
-        <Card title="Reportes" desc="Indicadores y métricas" />
-      </div>
+      <main style={styles.content}>
+        <h1 style={styles.title}>Panel Superadministrador</h1>
+        <p style={styles.subtitle}>
+          Bienvenido al sistema de gestión M.Rivas
+        </p>
+
+        <div style={styles.grid}>
+          <Card title="Nuevo Servicio" desc="Crear un nuevo servicio de transporte" />
+          <Card title="Conductores" desc="Administrar personal y documentación" />
+          <Card title="Vehículos" desc="Control de unidades y asignaciones" />
+          <Card title="Clientes" desc="Gestión comercial y empresas" />
+          <Card title="Usuarios" desc="Roles y accesos del sistema" />
+          <Card title="Reportes" desc="Indicadores y métricas operativas" />
+        </div>
+      </main>
     </div>
-  );
-};
+  )
+}
 
 type CardProps = {
-  title: string;
-  desc: string;
-};
+  title: string
+  desc: string
+}
 
 const Card: React.FC<CardProps> = ({ title, desc }) => {
   return (
@@ -32,15 +37,19 @@ const Card: React.FC<CardProps> = ({ title, desc }) => {
       <p>{desc}</p>
       <button style={styles.button}>Ver</button>
     </div>
-  );
-};
+  )
+}
 
 const styles = {
-  page: {
+  layout: {
+    display: "flex",
     minHeight: "100vh",
-    backgroundColor: "#f4f6f8",
-    padding: "30px",
     fontFamily: "Arial, sans-serif",
+    backgroundColor: "#f4f6f8",
+  },
+  content: {
+    flex: 1,
+    padding: "30px",
   },
   title: {
     fontSize: "32px",
@@ -63,13 +72,13 @@ const styles = {
   },
   button: {
     marginTop: "10px",
-    padding: "10px",
+    padding: "10px 16px",
     borderRadius: "8px",
     border: "none",
     backgroundColor: "#111827",
     color: "#fff",
     cursor: "pointer",
   },
-};
+}
 
-export default SuperAdminHome;
+export default SuperAdminHome

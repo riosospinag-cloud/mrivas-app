@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
+import { getFirestore } from "firebase/firestore"
 
-// 🔥 Configuración correcta de Firebase
+// 🔥 Configuración de tu proyecto
 const firebaseConfig = {
   apiKey: "AIzaSyBPQLOPoFTJSqSt7I5xSaq9GAaq9RqJLuI",
   authDomain: "mrivas-app.firebaseapp.com",
@@ -14,6 +15,9 @@ const firebaseConfig = {
 // 🔥 Inicializar Firebase
 const app = initializeApp(firebaseConfig)
 
-// 🔥 Exportar autenticación
+// 🔥 Autenticación
 export const auth = getAuth(app)
 export const provider = new GoogleAuthProvider()
+
+// 🔥 Base de datos (ESTO ES LO QUE FALTABA)
+export const db = getFirestore(app)

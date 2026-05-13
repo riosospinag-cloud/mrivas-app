@@ -1,3 +1,5 @@
+import NuevoServicio from "./pages/NuevoServicio"
+import Aprobaciones from "./pages/Aprobaciones"
 import ProtectedRoute from "./components/ProtectedRoute"
 import "./App.css"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
@@ -18,6 +20,24 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SuperAdminHome />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/superadmin/nuevo-servicio"
+          element={
+            <ProtectedRoute>
+              <NuevoServicio />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/superadmin/aprobaciones"
+          element={
+            <ProtectedRoute>
+              <Aprobaciones />
             </ProtectedRoute>
           }
         />
