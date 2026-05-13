@@ -8,6 +8,7 @@ const isMobile = window.innerWidth <= 768
 export default function Aprobaciones() {
   const [solicitudes, setSolicitudes] = useState<any[]>([])
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<any | null>(null)
+
   const [busqueda, setBusqueda] = useState("")
 
   const [filtroEstados, setFiltroEstados] = useState<string[]>([])
@@ -44,7 +45,10 @@ export default function Aprobaciones() {
   }
 
   function obtenerFechaCreacion(solicitud: any) {
-    if (solicitud.creadoEn?.toDate) return solicitud.creadoEn.toDate()
+    if (solicitud.creadoEn?.toDate) {
+      return solicitud.creadoEn.toDate()
+    }
+
     return null
   }
 
@@ -188,6 +192,7 @@ ${solicitud.ubicacionDestino || "-"}
 
     a.href = url
     a.download = `${solicitud.codigoSolicitud || "solicitud"}.txt`
+
     a.click()
 
     window.URL.revokeObjectURL(url)
@@ -199,9 +204,7 @@ ${solicitud.ubicacionDestino || "-"}
 
       <main style={styles.content}>
         <div style={styles.header}>
-          <h1 style={styles.title}>
-            Aprobación de Solicitudes
-          </h1>
+          <h1 style={styles.title}>Aprobación de Solicitudes</h1>
 
           <p style={styles.subtitle}>
             Revisa, aprueba o rechaza solicitudes.
@@ -219,8 +222,7 @@ ${solicitud.ubicacionDestino || "-"}
             value={
               solicitudes.filter(
                 (s) =>
-                  (s.estado || "pendiente") ===
-                  "pendiente"
+                  (s.estado || "pendiente") === "pendiente"
               ).length
             }
           />
@@ -249,9 +251,7 @@ ${solicitud.ubicacionDestino || "-"}
             style={styles.searchInput}
             placeholder="Buscar solicitud..."
             value={busqueda}
-            onChange={(e) =>
-              setBusqueda(e.target.value)
-            }
+            onChange={(e) => setBusqueda(e.target.value)}
           />
 
           <MultiFilter
@@ -259,11 +259,7 @@ ${solicitud.ubicacionDestino || "-"}
             options={estadosDisponibles}
             selected={filtroEstados}
             onToggle={(valor) =>
-              toggleFiltro(
-                valor,
-                filtroEstados,
-                setFiltroEstados
-              )
+              toggleFiltro(valor, filtroEstados, setFiltroEstados)
             }
           />
 
@@ -272,11 +268,7 @@ ${solicitud.ubicacionDestino || "-"}
             options={clientesDisponibles}
             selected={filtroClientes}
             onToggle={(valor) =>
-              toggleFiltro(
-                valor,
-                filtroClientes,
-                setFiltroClientes
-              )
+              toggleFiltro(valor, filtroClientes, setFiltroClientes)
             }
           />
 
@@ -285,11 +277,7 @@ ${solicitud.ubicacionDestino || "-"}
             options={conductoresDisponibles}
             selected={filtroConductores}
             onToggle={(valor) =>
-              toggleFiltro(
-                valor,
-                filtroConductores,
-                setFiltroConductores
-              )
+              toggleFiltro(valor, filtroConductores, setFiltroConductores)
             }
           />
 
@@ -298,11 +286,7 @@ ${solicitud.ubicacionDestino || "-"}
             options={mesesDisponibles}
             selected={filtroMeses}
             onToggle={(valor) =>
-              toggleFiltro(
-                valor,
-                filtroMeses,
-                setFiltroMeses
-              )
+              toggleFiltro(valor, filtroMeses, setFiltroMeses)
             }
           />
 
@@ -311,11 +295,7 @@ ${solicitud.ubicacionDestino || "-"}
             options={aniosDisponibles}
             selected={filtroAnios}
             onToggle={(valor) =>
-              toggleFiltro(
-                valor,
-                filtroAnios,
-                setFiltroAnios
-              )
+              toggleFiltro(valor, filtroAnios, setFiltroAnios)
             }
           />
 
@@ -329,10 +309,7 @@ ${solicitud.ubicacionDestino || "-"}
 
         <div style={styles.cardsGrid}>
           {solicitudesFiltradas.map((solicitud) => (
-            <div
-              key={solicitud.id}
-              style={styles.card}
-            >
+            <div key={solicitud.id} style={styles.card}>
               <div style={styles.cardTop}>
                 <div>
                   <span style={styles.codeLabel}>
@@ -348,9 +325,7 @@ ${solicitud.ubicacionDestino || "-"}
                   <button
                     style={styles.iconButton}
                     onClick={() =>
-                      setSolicitudSeleccionada(
-                        solicitud
-                      )
+                      setSolicitudSeleccionada(solicitud)
                     }
                   >
                     👁️
@@ -359,9 +334,7 @@ ${solicitud.ubicacionDestino || "-"}
                   <button
                     style={styles.iconButton}
                     onClick={() =>
-                      descargarSolicitud(
-                        solicitud
-                      )
+                      descargarSolicitud(solicitud)
                     }
                   >
                     📥
@@ -372,26 +345,21 @@ ${solicitud.ubicacionDestino || "-"}
                       ...styles.badge,
 
                       background:
-                        solicitud.estado ===
-                        "aprobado"
+                        solicitud.estado === "aprobado"
                           ? "#dcfce7"
-                          : solicitud.estado ===
-                            "rechazado"
+                          : solicitud.estado === "rechazado"
                           ? "#fee2e2"
                           : "#fef3c7",
 
                       color:
-                        solicitud.estado ===
-                        "aprobado"
+                        solicitud.estado === "aprobado"
                           ? "#166534"
-                          : solicitud.estado ===
-                            "rechazado"
+                          : solicitud.estado === "rechazado"
                           ? "#991b1b"
                           : "#92400e",
                     }}
                   >
-                    {solicitud.estado ||
-                      "pendiente"}
+                    {solicitud.estado || "pendiente"}
                   </span>
                 </div>
               </div>
@@ -405,8 +373,7 @@ ${solicitud.ubicacionDestino || "-"}
                 <Info
                   label="Conductor"
                   value={
-                    solicitud.conductor ||
-                    "Sin asignar"
+                    solicitud.conductor || "Sin asignar"
                   }
                 />
 
@@ -427,17 +394,13 @@ ${solicitud.ubicacionDestino || "-"}
                 </span>
 
                 <strong>
-                  {solicitud.ubicacionRecojo ||
-                    "-"}{" "}
-                  →{" "}
-                  {solicitud.ubicacionDestino ||
-                    "-"}
+                  {solicitud.ubicacionRecojo || "-"} →{" "}
+                  {solicitud.ubicacionDestino || "-"}
                 </strong>
               </div>
 
               <div style={styles.actions}>
-                {(solicitud.estado ||
-                  "pendiente") ===
+                {(solicitud.estado || "pendiente") ===
                   "pendiente" && (
                   <>
                     <button
@@ -466,20 +429,14 @@ ${solicitud.ubicacionDestino || "-"}
                   </>
                 )}
 
-                {solicitud.estado ===
-                  "aprobado" && (
-                  <div
-                    style={styles.statusApproved}
-                  >
+                {solicitud.estado === "aprobado" && (
+                  <div style={styles.statusApproved}>
                     ✅ Aprobada
                   </div>
                 )}
 
-                {solicitud.estado ===
-                  "rechazado" && (
-                  <div
-                    style={styles.statusRejected}
-                  >
+                {solicitud.estado === "rechazado" && (
+                  <div style={styles.statusRejected}>
                     ❌ Rechazada
                   </div>
                 )}
@@ -514,42 +471,27 @@ ${solicitud.ubicacionDestino || "-"}
 
                 <Info
                   label="Cliente"
-                  value={
-                    solicitudSeleccionada.cliente
-                  }
+                  value={solicitudSeleccionada.cliente}
                 />
 
                 <Info
                   label="Conductor"
-                  value={
-                    solicitudSeleccionada.conductor
-                  }
+                  value={solicitudSeleccionada.conductor}
                 />
 
                 <Info
                   label="Vehículo"
-                  value={
-                    solicitudSeleccionada.vehiculo
-                  }
+                  value={solicitudSeleccionada.vehiculo}
                 />
 
                 <Info
                   label="Fecha"
-                  value={
-                    solicitudSeleccionada.fechaRecojo
-                  }
+                  value={solicitudSeleccionada.fechaRecojo}
                 />
 
                 <Info
                   label="Hora"
-                  value={
-                    solicitudSeleccionada.horaRecojo
-                  }
-                />
-
-                <Info
-                  label="Ruta"
-                  value={`${solicitudSeleccionada.ubicacionRecojo} → ${solicitudSeleccionada.ubicacionDestino}`}
+                  value={solicitudSeleccionada.horaRecojo}
                 />
               </div>
             </div>
@@ -569,9 +511,7 @@ function SummaryCard({
 }) {
   return (
     <div style={styles.summaryCard}>
-      <span style={styles.summaryLabel}>
-        {label}
-      </span>
+      <span style={styles.summaryLabel}>{label}</span>
 
       <strong style={styles.summaryValue}>
         {value}
@@ -594,7 +534,7 @@ function MultiFilter({
   return (
     <details style={styles.multiFilter}>
       <summary style={styles.multiSummary}>
-        {label}
+        <span>{label}</span>
 
         {selected.length > 0 && (
           <span style={styles.filterCount}>
@@ -612,12 +552,13 @@ function MultiFilter({
             <input
               type="checkbox"
               checked={selected.includes(option)}
-              onChange={() =>
-                onToggle(option)
-              }
+              onChange={() => onToggle(option)}
+              style={styles.checkboxInput}
             />
 
-            {option}
+            <span style={styles.checkboxText}>
+              {option}
+            </span>
           </label>
         ))}
       </div>
@@ -634,9 +575,7 @@ function Info({
 }) {
   return (
     <div style={styles.infoItem}>
-      <span style={styles.infoLabel}>
-        {label}
-      </span>
+      <span style={styles.infoLabel}>{label}</span>
 
       <strong style={styles.infoValue}>
         {value || "-"}
@@ -655,10 +594,7 @@ const styles: any = {
 
   content: {
     flex: 1,
-    padding: isMobile
-      ? "72px 14px 24px"
-      : "34px",
-
+    padding: isMobile ? "72px 14px 24px" : "34px",
     width: "100%",
     boxSizing: "border-box",
   },
@@ -668,10 +604,7 @@ const styles: any = {
   },
 
   title: {
-    fontSize: isMobile
-      ? "28px"
-      : "46px",
-
+    fontSize: isMobile ? "28px" : "46px",
     fontWeight: "bold",
     margin: 0,
     color: "#0f172a",
@@ -680,69 +613,48 @@ const styles: any = {
   subtitle: {
     color: "#6b7280",
     marginTop: "8px",
-    fontSize: isMobile
-      ? "13px"
-      : "15px",
+    fontSize: "14px",
   },
 
   summaryGrid: {
     display: "grid",
-
     gridTemplateColumns: isMobile
       ? "1fr 1fr"
       : "repeat(4, minmax(0, 1fr))",
-
     gap: "12px",
     marginBottom: "16px",
   },
 
   summaryCard: {
     background: "#ffffff",
-    borderRadius: "16px",
-    padding: isMobile
-      ? "14px"
-      : "18px",
-
-    boxShadow:
-      "0 8px 22px rgba(15,23,42,0.05)",
-
+    borderRadius: "18px",
+    padding: "18px",
     border: "1px solid #e5e7eb",
   },
 
   summaryLabel: {
     color: "#64748b",
-    fontSize: "12px",
+    fontSize: "13px",
   },
 
   summaryValue: {
     display: "block",
     marginTop: "6px",
-
-    fontSize: isMobile
-      ? "22px"
-      : "30px",
-
+    fontSize: "34px",
     fontWeight: "bold",
     color: "#0b1f3a",
   },
 
   filterBar: {
     background: "#ffffff",
-    borderRadius: "16px",
-    padding: "12px",
-
+    borderRadius: "18px",
+    padding: "14px",
     display: "grid",
-
     gridTemplateColumns: isMobile
       ? "1fr"
       : "1.8fr repeat(5, 120px) 110px",
-
     gap: "10px",
-    marginBottom: "16px",
-
-    boxShadow:
-      "0 8px 22px rgba(15,23,42,0.05)",
-
+    marginBottom: "18px",
     border: "1px solid #e5e7eb",
   },
 
@@ -751,9 +663,8 @@ const styles: any = {
     background: "#f9fafb",
     border: "1px solid #d1d5db",
     borderRadius: "12px",
-    padding: "11px 12px",
+    padding: "14px",
     fontSize: "14px",
-    outline: "none",
     boxSizing: "border-box",
   },
 
@@ -767,13 +678,13 @@ const styles: any = {
     background: "#f9fafb",
     border: "1px solid #d1d5db",
     borderRadius: "12px",
-    padding: "11px 12px",
-    fontSize: "13px",
+    padding: "14px",
+    fontSize: "14px",
     fontWeight: "bold",
     cursor: "pointer",
-
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "center",
   },
 
   filterCount: {
@@ -785,31 +696,41 @@ const styles: any = {
   },
 
   multiOptions: {
-    position: "absolute",
-    top: "48px",
+    position: isMobile ? "static" : "absolute",
+    top: "52px",
     left: 0,
-
-    width: isMobile
-      ? "100%"
-      : "220px",
-
+    width: "100%",
     background: "#fff",
     border: "1px solid #e5e7eb",
     borderRadius: "14px",
     padding: "10px",
-
-    boxShadow:
-      "0 12px 32px rgba(0,0,0,0.15)",
-
+    marginTop: isMobile ? "8px" : "0",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
     zIndex: 50,
+    boxSizing: "border-box",
   },
 
   checkboxOption: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    padding: "8px",
+    gap: "10px",
+    padding: "10px",
     fontSize: "13px",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
+  checkboxInput: {
+    width: "18px",
+    height: "18px",
+    flexShrink: 0,
+  },
+
+  checkboxText: {
+    fontSize: "14px",
+    color: "#111827",
+    fontWeight: 500,
+    wordBreak: "break-word",
   },
 
   clearButton: {
@@ -817,36 +738,24 @@ const styles: any = {
     color: "#fff",
     border: "none",
     borderRadius: "12px",
-    height: "42px",
+    height: "50px",
     fontWeight: "bold",
-    width: "100%",
+    fontSize: "14px",
   },
 
   cardsGrid: {
     display: "grid",
-
     gridTemplateColumns: isMobile
       ? "1fr"
       : "repeat(auto-fit, minmax(420px, 1fr))",
-
     gap: "16px",
   },
 
   card: {
     background: "#fff",
     borderRadius: "20px",
-
-    padding: isMobile
-      ? "15px"
-      : "18px",
-
-    boxShadow:
-      "0 8px 24px rgba(15,23,42,0.06)",
-
+    padding: "18px",
     border: "1px solid #e5e7eb",
-
-    width: "100%",
-    boxSizing: "border-box",
   },
 
   cardTop: {
@@ -859,12 +768,12 @@ const styles: any = {
   cardTopActions: {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
+    gap: "8px",
     flexWrap: "wrap",
   },
 
   codeLabel: {
-    fontSize: "10px",
+    fontSize: "11px",
     color: "#6b7280",
     fontWeight: "bold",
   },
@@ -872,11 +781,7 @@ const styles: any = {
   code: {
     margin: "4px 0 0",
     color: "#0b1f3a",
-
-    fontSize: isMobile
-      ? "16px"
-      : "18px",
-
+    fontSize: "18px",
     fontWeight: "bold",
   },
 
@@ -884,144 +789,122 @@ const styles: any = {
     background: "transparent",
     border: "none",
     cursor: "pointer",
-    fontSize: "15px",
+    fontSize: "18px",
   },
 
   badge: {
-    padding: "6px 10px",
+    padding: "7px 12px",
     borderRadius: "999px",
-    fontSize: "10px",
+    fontSize: "11px",
     fontWeight: "bold",
   },
 
   infoGrid: {
     display: "grid",
-
     gridTemplateColumns: isMobile
       ? "1fr"
       : "repeat(2, minmax(0, 1fr))",
-
-    gap: "9px",
+    gap: "10px",
   },
 
   infoItem: {
     background: "#f8fafc",
-    borderRadius: "11px",
-    padding: "10px",
+    borderRadius: "12px",
+    padding: "12px",
     border: "1px solid #e2e8f0",
   },
 
   infoLabel: {
     display: "block",
     color: "#64748b",
-    fontSize: "10px",
-    marginBottom: "4px",
+    fontSize: "11px",
+    marginBottom: "5px",
   },
 
   infoValue: {
     color: "#111827",
-    fontSize: "12px",
+    fontSize: "14px",
     fontWeight: "bold",
     wordBreak: "break-word",
   },
 
   routeBox: {
-    marginTop: "10px",
+    marginTop: "12px",
     background: "#eef2ff",
     borderRadius: "12px",
-    padding: "11px",
+    padding: "12px",
     color: "#1e3a8a",
-    fontSize: "12px",
+    fontSize: "13px",
   },
 
   routeLabel: {
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: "bold",
   },
 
   actions: {
     display: "flex",
-
-    flexDirection: isMobile
-      ? "column"
-      : "row",
-
+    flexDirection: isMobile ? "column" : "row",
     gap: "10px",
-    marginTop: "12px",
+    marginTop: "14px",
   },
 
   approveButton: {
     background: "#16a34a",
     color: "#fff",
     border: "none",
-    borderRadius: "10px",
-    padding: "10px",
+    borderRadius: "12px",
+    padding: "12px",
     fontWeight: "bold",
-    width: isMobile
-      ? "100%"
-      : undefined,
+    width: isMobile ? "100%" : undefined,
   },
 
   rejectButton: {
     background: "#dc2626",
     color: "#fff",
     border: "none",
-    borderRadius: "10px",
-    padding: "10px",
+    borderRadius: "12px",
+    padding: "12px",
     fontWeight: "bold",
-    width: isMobile
-      ? "100%"
-      : undefined,
+    width: isMobile ? "100%" : undefined,
   },
 
   statusApproved: {
     background: "#dcfce7",
     color: "#166534",
-    padding: "10px",
-    borderRadius: "10px",
-    fontSize: "12px",
+    padding: "12px",
+    borderRadius: "12px",
+    fontSize: "13px",
     textAlign: "center",
+    fontWeight: "bold",
   },
 
   statusRejected: {
     background: "#fee2e2",
     color: "#991b1b",
-    padding: "10px",
-    borderRadius: "10px",
-    fontSize: "12px",
+    padding: "12px",
+    borderRadius: "12px",
+    fontSize: "13px",
     textAlign: "center",
+    fontWeight: "bold",
   },
 
   modalOverlay: {
     position: "fixed",
     inset: 0,
-    background:
-      "rgba(15,23,42,0.65)",
-
+    background: "rgba(15,23,42,0.65)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-
-    padding: isMobile
-      ? "10px"
-      : "0",
-
+    padding: isMobile ? "10px" : "0",
     zIndex: 999,
   },
 
   modal: {
     background: "#fff",
-
-    width: isMobile
-      ? "100%"
-      : "900px",
-
-    padding: isMobile
-      ? "18px"
-      : "28px",
-
+    width: isMobile ? "100%" : "900px",
+    padding: "24px",
     borderRadius: "24px",
-
     maxHeight: "88vh",
     overflowY: "auto",
   },
@@ -1042,11 +925,9 @@ const styles: any = {
 
   modalGrid: {
     display: "grid",
-
     gridTemplateColumns: isMobile
       ? "1fr"
       : "repeat(2, minmax(0, 1fr))",
-
     gap: "14px",
   },
 }
