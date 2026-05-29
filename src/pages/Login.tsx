@@ -45,7 +45,7 @@ export default function Login() {
       return
     }
 
-    // 🔥 SUPERADMIN
+    // SUPERADMIN
     if (email === "superadmin" && password === "123") {
       const loggedUser = login("kevin.r.h250298@gmail.com")
 
@@ -54,7 +54,7 @@ export default function Login() {
         goByRole(loggedUser.role)
       }
 
-    // 🔥 ADMIN
+    // ADMIN
     } else if (email === "admin" && password === "123") {
       const loggedUser = login("riosospinag@gmail.com")
 
@@ -62,6 +62,19 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(loggedUser))
         goByRole(loggedUser.role)
       }
+
+    // CONDUCTOR PRUEBA
+    } else if (
+      email === "riosospinag@gmail.com" &&
+      password === "12345678"
+    ) {
+      const loggedUser = {
+        email: "riosospinag@gmail.com",
+        role: "driver",
+      }
+
+      localStorage.setItem("user", JSON.stringify(loggedUser))
+      goByRole(loggedUser.role)
 
     } else {
       alert("Credenciales incorrectas")
@@ -82,7 +95,9 @@ export default function Login() {
       <img src="/logo.png" alt="M. Rivas" className="login-logo" />
 
       <h2 className="login-title">Bienvenido de vuelta 👋</h2>
-      <p className="login-subtitle">Inicia sesión para continuar</p>
+      <p className="login-subtitle">
+        Inicia sesión para continuar
+      </p>
 
       <input
         placeholder="Correo electrónico"
@@ -97,9 +112,14 @@ export default function Login() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleLogin}>Iniciar sesión</button>
+      <button onClick={handleLogin}>
+        Iniciar sesión
+      </button>
 
-      <button type="button" onClick={handleGoogleLogin}>
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+      >
         Iniciar con Google
       </button>
 

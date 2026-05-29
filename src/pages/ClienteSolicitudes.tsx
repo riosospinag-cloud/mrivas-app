@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore"
+import { collection, onSnapshot } from "firebase/firestore"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { db } from "../firebase"
 import Sidebar from "../components/Sidebar"
+import { useAuth } from "../context/AuthContext"
 
 type PuntoRecojo = {
   personal?: string
@@ -48,24 +49,9 @@ type Solicitud = {
   cronogramaViaje?: CronogramaPunto[]
 }
 
-const CONDUCTORES = [
-  "riosospinag@gmail.com",
-  "Kevin López",
-  "Juan Pérez",
-  "Carlos Ramos",
-  "Luis Mendoza",
-  "Miguel Torres",
-]
+export default function ClienteSolicitudes() {
+  const { user } = useAuth()
 
-const VEHICULOS = [
-  "Toyota Hiace - ABC-123",
-  "Hyundai H1 - BCD-456",
-  "Mercedes Vito - CDE-789",
-  "Toyota Coaster - FGH-321",
-  "Nissan Urvan - JKL-654",
-]
-
-export default function Aprobaciones() {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [busqueda, setBusqueda] = useState("")
   const [estadoFiltro, setEstadoFiltro] = useState("todos")
@@ -73,12 +59,6 @@ export default function Aprobaciones() {
   const [mesFiltro, setMesFiltro] = useState("todos")
   const [anioFiltro, setAnioFiltro] = useState("todos")
   const [solicitudDetalle, setSolicitudDetalle] = useState<Solicitud | null>(null)
-  const [solicitudRevision, setSolicitudRevision] = useState<Solicitud | null>(null)
-  const [cantidadConductores, setCantidadConductores] = useState(1)
-  const [asignaciones, setAsignaciones] = useState<AsignacionConductor[]>([
-    { conductor: "", vehiculo: "", puntosAsignados: [] },
-  ])
-  const [cronograma, setCronograma] = useState<CronogramaPunto[]>([])
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "solicitudes_servicio"), (snapshot) => {
@@ -87,12 +67,19 @@ export default function Aprobaciones() {
         ...(documento.data() as Omit<Solicitud, "id">),
       }))
 
-      lista.sort((a, b) => obtenerTimestamp(b.creadoEn) - obtenerTimestamp(a.creadoEn))
-      setSolicitudes(lista)
+      const soloMisSolicitudes = lista.filter(
+        (solicitud) => solicitud.solicitanteEmail === user?.email
+      )
+
+      soloMisSolicitudes.sort(
+        (a, b) => obtenerTimestamp(b.creadoEn) - obtenerTimestamp(a.creadoEn)
+      )
+
+      setSolicitudes(soloMisSolicitudes)
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [user?.email])
 
   const solicitudesFiltradas = useMemo(() => {
     return solicitudes.filter((solicitud) => {
@@ -103,8 +90,7 @@ export default function Aprobaciones() {
         solicitud.codigoSolicitud?.toLowerCase().includes(textoBusqueda) ||
         solicitud.cliente?.toLowerCase().includes(textoBusqueda) ||
         solicitud.contactoNombre?.toLowerCase().includes(textoBusqueda) ||
-        solicitud.contactoTelefono?.toLowerCase().includes(textoBusqueda) ||
-        solicitud.solicitanteEmail?.toLowerCase().includes(textoBusqueda)
+        solicitud.contactoTelefono?.toLowerCase().includes(textoBusqueda)
 
       const coincideEstado = estadoFiltro === "todos" || solicitud.estado === estadoFiltro
       const coincideCliente = clienteFiltro === "todos" || solicitud.cliente === clienteFiltro
@@ -137,166 +123,6 @@ export default function Aprobaciones() {
     )
   )
 
-  const abrirRevisionPrevia = (solicitud: Solicitud) => {
-    const puntos = solicitud.puntosRecojo || []
-
-    const asignacionesIniciales =
-      solicitud.conductoresAsignados && solicitud.conductoresAsignados.length > 0
-        ? solicitud.conductoresAsignados
-        : [{ conductor: "", vehiculo: "", puntosAsignados: [] }]
-
-    const cronogramaInicial =
-      solicitud.cronogramaViaje && solicitud.cronogramaViaje.length > 0
-        ? solicitud.cronogramaViaje
-        : puntos.map((punto, index) => ({
-            puntoIndex: index,
-            direccion: punto.direccion || "-",
-            fechaLlegada: "",
-            horaLlegada: "",
-          }))
-
-    setSolicitudRevision(solicitud)
-    setCantidadConductores(asignacionesIniciales.length)
-    setAsignaciones(asignacionesIniciales)
-    setCronograma(cronogramaInicial)
-  }
-
-  const actualizarCantidadConductores = (cantidad: number) => {
-    if (cantidad < 1) return
-
-    const nuevos = Array.from({ length: cantidad }, (_, index) => {
-      return asignaciones[index] || { conductor: "", vehiculo: "", puntosAsignados: [] }
-    })
-
-    setCantidadConductores(cantidad)
-    setAsignaciones(nuevos)
-  }
-
-  const actualizarAsignacion = (
-    index: number,
-    campo: keyof AsignacionConductor,
-    valor: string | number[]
-  ) => {
-    const copia = [...asignaciones]
-    copia[index] = { ...copia[index], [campo]: valor }
-    setAsignaciones(copia)
-  }
-
-  const togglePuntoAsignado = (conductorIndex: number, puntoIndex: number) => {
-    const copia = [...asignaciones]
-    const puntosActuales = copia[conductorIndex].puntosAsignados || []
-    const existe = puntosActuales.includes(puntoIndex)
-
-    copia[conductorIndex].puntosAsignados = existe
-      ? puntosActuales.filter((p) => p !== puntoIndex)
-      : [...puntosActuales, puntoIndex]
-
-    setAsignaciones(copia)
-  }
-
-  const actualizarCronograma = (
-    index: number,
-    campo: keyof CronogramaPunto,
-    valor: string
-  ) => {
-    const copia = [...cronograma]
-    copia[index] = { ...copia[index], [campo]: valor }
-    setCronograma(copia)
-  }
-
-  const validarRevision = () => {
-    if (!solicitudRevision) return false
-
-    for (let i = 0; i < asignaciones.length; i++) {
-      const asignacion = asignaciones[i]
-
-      if (!asignacion.conductor) {
-        alert(`Selecciona el conductor ${i + 1}`)
-        return false
-      }
-
-      if (!asignacion.vehiculo) {
-        alert(`Selecciona el vehículo del conductor ${i + 1}`)
-        return false
-      }
-
-      if (!asignacion.puntosAsignados || asignacion.puntosAsignados.length === 0) {
-        alert(`Asigna al menos un punto al conductor ${i + 1}`)
-        return false
-      }
-    }
-
-    const vehiculosUsados = asignaciones.map((a) => a.vehiculo)
-    const vehiculosDuplicados = vehiculosUsados.some(
-      (vehiculo, index) => vehiculosUsados.indexOf(vehiculo) !== index
-    )
-
-    if (vehiculosDuplicados) {
-      alert("No puedes asignar el mismo vehículo a más de un conductor")
-      return false
-    }
-
-    for (let i = 0; i < cronograma.length; i++) {
-      if (!cronograma[i].fechaLlegada || !cronograma[i].horaLlegada) {
-        alert(`Completa fecha y hora de llegada del punto ${i + 1}`)
-        return false
-      }
-    }
-
-    return true
-  }
-
-  const guardarRevisionPrevia = async () => {
-    if (!solicitudRevision) return
-    if (!validarRevision()) return
-
-    try {
-      await updateDoc(doc(db, "solicitudes_servicio", solicitudRevision.id), {
-        revisada: true,
-        conductoresAsignados: asignaciones,
-        cronogramaViaje: cronograma,
-      })
-
-      alert("Revisión previa guardada correctamente")
-      setSolicitudRevision(null)
-    } catch (error) {
-      console.error(error)
-      alert("Error al guardar la revisión previa")
-    }
-  }
-
-  const aprobarSolicitud = async (solicitud: Solicitud) => {
-    if (!solicitud.revisada) {
-      alert("Primero debes realizar y guardar la revisión previa")
-      return
-    }
-
-    try {
-      await updateDoc(doc(db, "solicitudes_servicio", solicitud.id), {
-        estado: "aprobado",
-      })
-    } catch (error) {
-      console.error(error)
-      alert("Error al aprobar la solicitud")
-    }
-  }
-
-  const rechazarSolicitud = async (solicitud: Solicitud) => {
-    if (!solicitud.revisada) {
-      alert("Primero debes realizar la revisión previa antes de rechazar")
-      return
-    }
-
-    try {
-      await updateDoc(doc(db, "solicitudes_servicio", solicitud.id), {
-        estado: "rechazado",
-      })
-    } catch (error) {
-      console.error(error)
-      alert("Error al rechazar la solicitud")
-    }
-  }
-
   const limpiarFiltros = () => {
     setBusqueda("")
     setEstadoFiltro("todos")
@@ -327,9 +153,7 @@ export default function Aprobaciones() {
       body: [
         ["Código de solicitud", solicitud.codigoSolicitud || "-"],
         ["Estado", solicitud.estado || "-"],
-        ["Revisión previa", solicitud.revisada ? "Sí" : "No"],
         ["Registrado", formatearFechaHora(solicitud.creadoEn)],
-        ["Solicitante", solicitud.solicitanteEmail || "-"],
         ["Cliente", solicitud.cliente || "-"],
         ["Contacto cliente", solicitud.contactoNombre || "-"],
         ["Teléfono contacto", solicitud.contactoTelefono || "-"],
@@ -357,35 +181,11 @@ export default function Aprobaciones() {
 
     autoTable(pdf, {
       startY: (pdf as any).lastAutoTable.finalY + 10,
-      head: [["#", "Conductor", "Vehículo", "Puntos asignados"]],
-      body:
-        solicitud.conductoresAsignados?.map((item, index) => [
-          String(index + 1),
-          item.conductor || "-",
-          item.vehiculo || "-",
-          item.puntosAsignados?.map((p) => `Punto ${p + 1}`).join(", ") || "-",
-        ]) || [["-", "No asignado", "No asignado", "-"]],
-    })
-
-    autoTable(pdf, {
-      startY: (pdf as any).lastAutoTable.finalY + 10,
-      head: [["Punto", "Dirección", "Fecha llegada", "Hora llegada"]],
-      body:
-        solicitud.cronogramaViaje?.map((item) => [
-          `Punto ${item.puntoIndex + 1}`,
-          item.direccion || "-",
-          item.fechaLlegada || "-",
-          item.horaLlegada || "-",
-        ]) || [["-", "No asignado", "-", "-"]],
-    })
-
-    autoTable(pdf, {
-      startY: (pdf as any).lastAutoTable.finalY + 10,
       head: [["Observaciones adicionales"]],
       body: [[solicitud.observaciones || "-"]],
     })
 
-    pdf.save(`${codigo}_solicitud_servicio.pdf`)
+    pdf.save(`${codigo}_mi_solicitud.pdf`)
   }
 
   return (
@@ -393,10 +193,10 @@ export default function Aprobaciones() {
       <Sidebar />
 
       <main style={styles.content}>
-        <h1 style={styles.title}>Aprobación de Solicitudes</h1>
+        <h1 style={styles.title}>Mis Solicitudes</h1>
 
         <p style={styles.subtitle}>
-          Revisa, asigna recursos operativos, aprueba o rechaza solicitudes.
+          Consulta el estado de tus solicitudes de servicio.
         </p>
 
         <div style={styles.statsGrid}>
@@ -461,7 +261,7 @@ export default function Aprobaciones() {
         </div>
 
         {solicitudesFiltradas.length === 0 ? (
-          <div style={styles.emptyCard}>No existen solicitudes registradas.</div>
+          <div style={styles.emptyCard}>No tienes solicitudes registradas.</div>
         ) : (
           <div style={styles.cardsGrid}>
             {solicitudesFiltradas.map((solicitud) => (
@@ -477,11 +277,6 @@ export default function Aprobaciones() {
 
                     <p style={styles.metaText}>
                       <strong>Solicitante:</strong> {solicitud.solicitanteEmail || "-"}
-                    </p>
-
-                    <p style={styles.metaText}>
-                      <strong>Revisión previa:</strong>{" "}
-                      {solicitud.revisada ? "Realizada" : "Pendiente"}
                     </p>
                   </div>
 
@@ -514,167 +309,11 @@ export default function Aprobaciones() {
                 <div style={styles.routeBox}>
                   <strong>Ruta:</strong> {obtenerRuta(solicitud)}
                 </div>
-
-                {solicitud.conductoresAsignados && solicitud.conductoresAsignados.length > 0 && (
-                  <div style={styles.assignmentBox}>
-                    <strong>Asignación:</strong>{" "}
-                    {solicitud.conductoresAsignados
-                      .map((a) => `${a.conductor} / ${a.vehiculo}`)
-                      .join(" | ")}
-                  </div>
-                )}
-
-                {solicitud.estado === "pendiente" && (
-                  <>
-                    <button style={styles.reviewButton} onClick={() => abrirRevisionPrevia(solicitud)}>
-                      Revisión previa de solicitud
-                    </button>
-
-                    <div style={styles.actions}>
-                      <button
-                        style={solicitud.revisada ? styles.approveButton : styles.disabledButton}
-                        onClick={() => aprobarSolicitud(solicitud)}
-                      >
-                        Aprobar
-                      </button>
-
-                      <button
-                        style={solicitud.revisada ? styles.rejectButton : styles.disabledButton}
-                        onClick={() => rechazarSolicitud(solicitud)}
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-
-                    {!solicitud.revisada && (
-                      <p style={styles.warningText}>
-                        Debes realizar la revisión previa antes de aprobar o rechazar.
-                      </p>
-                    )}
-                  </>
-                )}
               </div>
             ))}
           </div>
         )}
       </main>
-
-      {solicitudRevision && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalLarge}>
-            <button style={styles.xButton} onClick={() => setSolicitudRevision(null)}>
-              ×
-            </button>
-
-            <h2 style={styles.modalTitle}>Revisión previa de solicitud</h2>
-
-            <Section title="Resumen de solicitud">
-              <DetailItem label="Código" value={solicitudRevision.codigoSolicitud || "-"} />
-              <DetailItem label="Cliente" value={solicitudRevision.cliente || "-"} />
-              <DetailItem label="Ruta" value={obtenerRuta(solicitudRevision)} />
-              <DetailItem label="Fecha servicio" value={solicitudRevision.fechaServicio || "-"} />
-              <DetailItem label="Hora inicial" value={solicitudRevision.horaInicial || "-"} />
-              <DetailItem label="Hora llegada" value={solicitudRevision.horaLlegada || "-"} />
-            </Section>
-
-            <Section title="Asignar conductores y vehículos">
-              <label style={styles.formLabel}>Cantidad de conductores</label>
-              <input
-                type="number"
-                min={1}
-                max={solicitudRevision.puntosRecojo?.length || 20}
-                style={styles.input}
-                value={cantidadConductores}
-                onChange={(e) => actualizarCantidadConductores(Number(e.target.value))}
-              />
-
-              {asignaciones.map((asignacion, index) => (
-                <div key={index} style={styles.assignmentCard}>
-                  <h4 style={styles.pointTitle}>Conductor #{index + 1}</h4>
-
-                  <select
-                    style={styles.input}
-                    value={asignacion.conductor}
-                    onChange={(e) => actualizarAsignacion(index, "conductor", e.target.value)}
-                  >
-                    <option value="">Seleccionar conductor</option>
-                    {CONDUCTORES.map((conductor) => (
-                      <option key={conductor} value={conductor}>
-                        {conductor}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    style={styles.input}
-                    value={asignacion.vehiculo}
-                    onChange={(e) => actualizarAsignacion(index, "vehiculo", e.target.value)}
-                  >
-                    <option value="">Seleccionar vehículo</option>
-                    {VEHICULOS.map((vehiculo) => (
-                      <option key={vehiculo} value={vehiculo}>
-                        {vehiculo}
-                      </option>
-                    ))}
-                  </select>
-
-                  <p style={styles.metaText}>
-                    <strong>Puntos que abarcará este conductor:</strong>
-                  </p>
-
-                  <div style={styles.checkGrid}>
-                    {(solicitudRevision.puntosRecojo || []).map((punto, puntoIndex) => (
-                      <label key={puntoIndex} style={styles.checkItem}>
-                        <input
-                          type="checkbox"
-                          checked={asignacion.puntosAsignados.includes(puntoIndex)}
-                          onChange={() => togglePuntoAsignado(index, puntoIndex)}
-                        />
-                        Punto {puntoIndex + 1}: {punto.direccion || "-"}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </Section>
-
-            <Section title="Asignar cronograma de viaje">
-              {(solicitudRevision.puntosRecojo || []).map((punto, index) => (
-                <div key={index} style={styles.scheduleCard}>
-                  <h4 style={styles.pointTitle}>Punto #{index + 1}</h4>
-                  <p style={styles.metaText}>{punto.direccion || "-"}</p>
-
-                  <div style={styles.scheduleGrid}>
-                    <input
-                      type="date"
-                      style={styles.input}
-                      value={cronograma[index]?.fechaLlegada || ""}
-                      onChange={(e) => actualizarCronograma(index, "fechaLlegada", e.target.value)}
-                    />
-
-                    <input
-                      type="time"
-                      style={styles.input}
-                      value={cronograma[index]?.horaLlegada || ""}
-                      onChange={(e) => actualizarCronograma(index, "horaLlegada", e.target.value)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </Section>
-
-            <div style={styles.modalActions}>
-              <button style={styles.downloadButton} onClick={() => descargarSolicitud(solicitudRevision)}>
-                Descargar PDF
-              </button>
-
-              <button style={styles.approveButtonSmall} onClick={guardarRevisionPrevia}>
-                Guardar revisión previa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {solicitudDetalle && (
         <div style={styles.modalOverlay}>
@@ -689,7 +328,7 @@ export default function Aprobaciones() {
               <DetailItem label="Código" value={solicitudDetalle.codigoSolicitud || "-"} />
               <DetailItem label="Registrado" value={formatearFechaHora(solicitudDetalle.creadoEn)} />
               <DetailItem label="Solicitante" value={solicitudDetalle.solicitanteEmail || "-"} />
-              <DetailItem label="Revisión previa" value={solicitudDetalle.revisada ? "Realizada" : "Pendiente"} />
+              <DetailItem label="Estado" value={solicitudDetalle.estado || "-"} />
             </Section>
 
             <Section title="Datos del cliente">
@@ -717,24 +356,6 @@ export default function Aprobaciones() {
                   <DetailItem label="Teléfono" value={punto.telefono || "-"} />
                 </div>
               ))}
-            </Section>
-
-            <Section title="Asignación operativa">
-              {solicitudDetalle.conductoresAsignados?.length ? (
-                solicitudDetalle.conductoresAsignados.map((asignacion, index) => (
-                  <div key={index} style={styles.assignmentCard}>
-                    <h4 style={styles.pointTitle}>Conductor #{index + 1}</h4>
-                    <DetailItem label="Conductor" value={asignacion.conductor} />
-                    <DetailItem label="Vehículo" value={asignacion.vehiculo} />
-                    <DetailItem
-                      label="Puntos asignados"
-                      value={asignacion.puntosAsignados.map((p) => `Punto ${p + 1}`).join(", ")}
-                    />
-                  </div>
-                ))
-              ) : (
-                <p style={styles.emptyText}>Aún no se asignaron conductores ni vehículos.</p>
-              )}
             </Section>
 
             <Section title="Cronograma de viaje">
@@ -980,68 +601,6 @@ const styles: any = {
     fontSize: "14px",
   },
 
-  assignmentBox: {
-    background: "#ecfdf5",
-    color: "#064e3b",
-    borderRadius: "12px",
-    padding: "13px",
-    marginBottom: "14px",
-    fontSize: "14px",
-  },
-
-  reviewButton: {
-    width: "100%",
-    background: "#0b1f3a",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    marginBottom: "12px",
-  },
-
-  actions: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
-
-  approveButton: {
-    background: "#16a34a",
-    color: "#fff",
-    border: "none",
-    padding: "15px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  rejectButton: {
-    background: "#dc2626",
-    color: "#fff",
-    border: "none",
-    padding: "15px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  disabledButton: {
-    background: "#9ca3af",
-    color: "#fff",
-    border: "none",
-    padding: "15px",
-    borderRadius: "12px",
-    cursor: "not-allowed",
-    fontWeight: "bold",
-  },
-
-  warningText: {
-    color: "#92400e",
-    background: "#fef3c7",
-    padding: "10px",
-    borderRadius: "10px",
-    fontSize: "13px",
-    marginTop: "10px",
-  },
-
   modalOverlay: {
     position: "fixed",
     top: 0,
@@ -1102,14 +661,6 @@ const styles: any = {
     marginBottom: "12px",
   },
 
-  assignmentCard: {
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: "14px",
-    padding: "16px",
-    marginBottom: "16px",
-  },
-
   scheduleCard: {
     background: "#f8fafc",
     border: "1px solid #e2e8f0",
@@ -1118,44 +669,7 @@ const styles: any = {
     marginBottom: "12px",
   },
 
-  scheduleGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
-  },
-
   pointTitle: { color: "#0b1f3a", marginTop: 0, marginBottom: "10px" },
-
-  input: {
-    width: "100%",
-    padding: "13px",
-    borderRadius: "10px",
-    border: "1px solid #d1d5db",
-    marginBottom: "12px",
-    boxSizing: "border-box",
-  },
-
-  formLabel: {
-    display: "block",
-    fontWeight: "bold",
-    marginBottom: "8px",
-    color: "#0b1f3a",
-  },
-
-  checkGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "8px",
-  },
-
-  checkItem: {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "10px",
-    padding: "10px",
-    cursor: "pointer",
-  },
-
   emptyText: { color: "#64748b" },
 
   observationsBox: {
@@ -1167,20 +681,8 @@ const styles: any = {
     whiteSpace: "pre-wrap",
   },
 
-  modalActions: { display: "flex", gap: "12px", marginTop: "22px" },
-
   downloadButton: {
     background: "#2563eb",
-    color: "#fff",
-    border: "none",
-    padding: "14px 18px",
-    borderRadius: "12px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  approveButtonSmall: {
-    background: "#16a34a",
     color: "#fff",
     border: "none",
     padding: "14px 18px",
