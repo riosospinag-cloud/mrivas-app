@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { arrayUnion, collection, doc, onSnapshot, updateDoc } from "firebase/firestore"
 import { db } from "../firebase"
 import Sidebar from "../components/Sidebar"
 import { useAuth } from "../context/AuthContext"
@@ -39,6 +39,13 @@ type UbicacionActual = {
   conductor: string
 }
 
+type HistorialUbicacion = {
+  lat: number
+  lng: number
+  fechaHora: string
+  conductor: string
+}
+
 type Solicitud = {
   id: string
   codigoSolicitud?: string
@@ -62,6 +69,7 @@ type Solicitud = {
   fechaHoraFinalizacion?: string
   finalizadoPor?: string
   ubicacionActual?: UbicacionActual
+  historialUbicaciones?: HistorialUbicacion[]
 }
 
 export default function DriverServicios() {
@@ -76,6 +84,8 @@ export default function DriverServicios() {
   const [tipoIncidencia, setTipoIncidencia] = useState("")
   const [descripcionIncidencia, setDescripcionIncidencia] = useState("")
   const [ubicacionIncidencia, setUbicacionIncidencia] = useState("")
+
+  const watchIdRef = useRef<number | null>(null)
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "solicitudes_servicio"), (snapshot) => {
@@ -100,6 +110,12 @@ export default function DriverServicios() {
     return () => unsubscribe()
   }, [user?.email])
 
+  useEffect(() => {
+    return () => {
+      detenerSeguimientoGPS()
+    }
+  }, [])
+
   const filtradas = useMemo(() => {
     return solicitudes.filter((s) => {
       const q = busqueda.toLowerCase()
@@ -118,41 +134,64 @@ export default function DriverServicios() {
     })
   }, [solicitudes, busqueda, estadoFiltro])
 
-  const guardarUbicacionActual = async (solicitud: Solicitud) => {
+  const detenerSeguimientoGPS = () => {
+    if (watchIdRef.current !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+  }
+
+  const iniciarSeguimientoGPS = (solicitud: Solicitud) => {
     if (!navigator.geolocation) {
       alert("Este dispositivo o navegador no permite obtener ubicación GPS")
       return
     }
 
-    navigator.geolocation.getCurrentPosition(
+    detenerSeguimientoGPS()
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
         const lat = position.coords.latitude
         const lng = position.coords.longitude
+        const fechaHora = new Date().toISOString()
+        const conductor = user?.email || "No identificado"
 
         try {
           await updateDoc(doc(db, "solicitudes_servicio", solicitud.id), {
             ubicacionActual: {
               lat,
               lng,
-              actualizadoEn: new Date().toISOString(),
-              conductor: user?.email || "No identificado",
+              actualizadoEn: fechaHora,
+              conductor,
             },
+            historialUbicaciones: arrayUnion({
+              lat,
+              lng,
+              fechaHora,
+              conductor,
+            }),
           })
-
-          alert("Ubicación GPS guardada correctamente")
         } catch (error) {
-          console.error("Error guardando ubicación:", error)
-          alert("No se pudo guardar la ubicación en Firebase")
+          console.error("Error guardando ubicación GPS:", error)
         }
       },
       (error) => {
         console.error("Error GPS:", error)
-        alert("No se pudo obtener ubicación. Revisa permisos del navegador.")
+
+        if (error.code === error.PERMISSION_DENIED) {
+          alert("Permiso de ubicación denegado. Activa la ubicación para continuar.")
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          alert("No se pudo obtener la ubicación actual.")
+        } else if (error.code === error.TIMEOUT) {
+          alert("La ubicación tardó demasiado en responder.")
+        } else {
+          alert("No se pudo activar el seguimiento GPS.")
+        }
       },
       {
         enableHighAccuracy: true,
         timeout: 15000,
-        maximumAge: 0,
+        maximumAge: 5000,
       }
     )
   }
@@ -164,7 +203,8 @@ export default function DriverServicios() {
     }
 
     if (solicitud.estadoOperativo === "en_ruta") {
-      await guardarUbicacionActual(solicitud)
+      iniciarSeguimientoGPS(solicitud)
+      alert("Seguimiento GPS reactivado")
       return
     }
 
@@ -175,9 +215,9 @@ export default function DriverServicios() {
         iniciadoPor: user?.email || "No identificado",
       })
 
-      await guardarUbicacionActual(solicitud)
+      iniciarSeguimientoGPS(solicitud)
 
-      alert("Ruta iniciada correctamente")
+      alert("Ruta iniciada correctamente. Seguimiento GPS activado.")
     } catch (error) {
       console.error(error)
       alert("No se pudo iniciar la ruta")
@@ -196,13 +236,15 @@ export default function DriverServicios() {
     }
 
     try {
+      detenerSeguimientoGPS()
+
       await updateDoc(doc(db, "solicitudes_servicio", solicitud.id), {
         estadoOperativo: "finalizado",
         fechaHoraFinalizacion: new Date().toISOString(),
         finalizadoPor: user?.email || "No identificado",
       })
 
-      alert("Servicio finalizado correctamente")
+      alert("Servicio finalizado correctamente. Seguimiento GPS detenido.")
     } catch (error) {
       console.error(error)
       alert("No se pudo finalizar el servicio")
@@ -330,6 +372,12 @@ export default function DriverServicios() {
                         </p>
                       )}
 
+                      {solicitud.historialUbicaciones?.length ? (
+                        <p style={styles.gpsText}>
+                          Puntos GPS registrados: {solicitud.historialUbicaciones.length}
+                        </p>
+                      ) : null}
+
                       {solicitud.incidencias?.length ? (
                         <p style={styles.warningText}>
                           Incidencias registradas: {solicitud.incidencias.length}
@@ -365,7 +413,7 @@ export default function DriverServicios() {
                       }
                       onClick={() => iniciarRuta(solicitud)}
                     >
-                      {solicitud.estadoOperativo === "en_ruta" ? "Actualizar GPS" : "Iniciar ruta"}
+                      {solicitud.estadoOperativo === "en_ruta" ? "Reactivar GPS" : "Iniciar ruta"}
                     </button>
 
                     <button
@@ -447,6 +495,10 @@ export default function DriverServicios() {
               <DetailItem
                 label="Conductor"
                 value={detalle.ubicacionActual?.conductor || "-"}
+              />
+              <DetailItem
+                label="Puntos GPS registrados"
+                value={detalle.historialUbicaciones?.length ? String(detalle.historialUbicaciones.length) : "0"}
               />
 
               <button
