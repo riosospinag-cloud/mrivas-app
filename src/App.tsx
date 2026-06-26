@@ -1,3 +1,4 @@
+import Clientes from "./pages/Clientes"
 import NuevoServicio from "./pages/NuevoServicio"
 import Aprobaciones from "./pages/Aprobaciones"
 import ClienteSolicitudes from "./pages/ClienteSolicitudes"
@@ -52,7 +53,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+  path="/superadmin/clientes"
+  element={
+    <ProtectedRoute>
+      <Clientes />
+    </ProtectedRoute>
+  }
+/>
 
 
         {/* ADMIN */}

@@ -1,730 +1,531 @@
-import { useState, type ReactNode } from "react"
-import { db } from "../firebase"
-import { collection, addDoc } from "firebase/firestore"
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
-import Sidebar from "../components/Sidebar"
-import { useAuth } from "../context/AuthContext"
+import { useEffect, useState } from "react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import Sidebar from "../components/Sidebar";
 
 type PuntoRecojo = {
-  personal: string
-  direccion: string
-  googleMaps: string
-  telefono: string
-}
-
-type SolicitudCreada = {
-  codigoSolicitud: string
-  cliente: string
-  contactoNombre: string
-  contactoTelefono: string
-  modalidad: string
-  viajeDirigido: string
-  numeroPuntosRecojo: number
-  puntosRecojo: PuntoRecojo[]
-  horaInicial: string
-  horaLlegada: string
-  fechaServicio: string
-  observaciones: string
-  estado: string
-  solicitanteEmail: string
-  solicitanteRol: string
-}
-
-const puntoVacio: PuntoRecojo = {
-  personal: "",
-  direccion: "",
-  googleMaps: "",
-  telefono: "",
-}
+  numero: number;
+  persona: string;
+  direccion: string;
+  ubicacionGoogleMaps: string;
+  telefono: string;
+};
 
 export default function NuevoServicio() {
-  const { user } = useAuth()
+  const [codigoSolicitud, setCodigoSolicitud] = useState("");
+  const [clienteNombre, setClienteNombre] = useState("");
+  const [nombreContacto, setNombreContacto] = useState("");
+  const [telefonoContacto, setTelefonoContacto] = useState("");
+  const [modalidad, setModalidad] = useState("");
+  const [dirigidoA, setDirigidoA] = useState("");
+  const [fechaServicio, setFechaServicio] = useState("");
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaLlegada, setHoraLlegada] = useState("");
+  const [observaciones, setObservaciones] = useState("");
 
-  const [cliente, setCliente] = useState("")
-  const [contactoNombre, setContactoNombre] = useState("")
-  const [contactoTelefono, setContactoTelefono] = useState("")
-  const [modalidad, setModalidad] = useState("")
-  const [viajeDirigido, setViajeDirigido] = useState("")
-  const [numeroPuntosRecojo, setNumeroPuntosRecojo] = useState(1)
-  const [puntosRecojo, setPuntosRecojo] = useState<PuntoRecojo[]>([{ ...puntoVacio }])
-  const [horaInicial, setHoraInicial] = useState("")
-  const [horaLlegada, setHoraLlegada] = useState("")
-  const [fechaServicio, setFechaServicio] = useState("")
-  const [observaciones, setObservaciones] = useState("")
-  const [mostrarModalPuntos, setMostrarModalPuntos] = useState(false)
-  const [solicitudCreada, setSolicitudCreada] = useState<SolicitudCreada | null>(null)
+  const [destinoFinalDireccion, setDestinoFinalDireccion] = useState("");
+  const [destinoFinalUbicacion, setDestinoFinalUbicacion] = useState("");
+  const [destinoFinalReferencia, setDestinoFinalReferencia] = useState("");
 
-  const handleTelefonoChange = (value: string) => {
-    setContactoTelefono(value.replace(/\D/g, "").slice(0, 9))
-  }
+  const [cantidadPuntos, setCantidadPuntos] = useState(1);
+  const [puntosRecojo, setPuntosRecojo] = useState<PuntoRecojo[]>([
+    { numero: 1, persona: "", direccion: "", ubicacionGoogleMaps: "", telefono: "" },
+  ]);
 
-  const actualizarPunto = (index: number, field: keyof PuntoRecojo, value: string) => {
-    const copia = [...puntosRecojo]
+  const [guardando, setGuardando] = useState(false);
 
-    if (field === "telefono") {
-      value = value.replace(/\D/g, "").slice(0, 9)
-    }
-
-    copia[index][field] = value
-    setPuntosRecojo(copia)
-  }
-
-  const agregarPuntoRecojo = () => {
-    if (puntosRecojo.length >= 20) {
-      alert("Solo puedes agregar hasta 20 puntos de recojo")
-      return
-    }
-
-    const nuevosPuntos = [...puntosRecojo, { ...puntoVacio }]
-    setPuntosRecojo(nuevosPuntos)
-    setNumeroPuntosRecojo(nuevosPuntos.length)
-  }
-
-  const eliminarPuntoRecojo = (index: number) => {
-    if (puntosRecojo.length <= 1) {
-      alert("Debe existir al menos un punto de recojo")
-      return
-    }
-
-    const nuevosPuntos = puntosRecojo.filter((_, i) => i !== index)
-    setPuntosRecojo(nuevosPuntos)
-    setNumeroPuntosRecojo(nuevosPuntos.length)
-  }
+  useEffect(() => {
+    const fecha = new Date();
+    setCodigoSolicitud(`SOL-${fecha.getFullYear()}-${String(fecha.getTime()).slice(-6)}`);
+  }, []);
 
   const actualizarCantidadPuntos = (cantidad: number) => {
-    if (cantidad < 1 || cantidad > 20) return
-
-    setNumeroPuntosRecojo(cantidad)
+    setCantidadPuntos(cantidad);
 
     const nuevosPuntos = Array.from({ length: cantidad }, (_, index) => {
-      return puntosRecojo[index] || { ...puntoVacio }
-    })
+      return (
+        puntosRecojo[index] || {
+          numero: index + 1,
+          persona: "",
+          direccion: "",
+          ubicacionGoogleMaps: "",
+          telefono: "",
+        }
+      );
+    });
 
-    setPuntosRecojo(nuevosPuntos)
+    setPuntosRecojo(nuevosPuntos);
+  };
 
-    if (cantidad >= 2) {
-      setMostrarModalPuntos(true)
-    }
-  }
+  const actualizarPunto = (
+    index: number,
+    campo: keyof PuntoRecojo,
+    valor: string
+  ) => {
+    const copia = [...puntosRecojo];
+    copia[index] = { ...copia[index], [campo]: valor };
+    setPuntosRecojo(copia);
+  };
 
-  const limpiarFormulario = () => {
-    setCliente("")
-    setContactoNombre("")
-    setContactoTelefono("")
-    setModalidad("")
-    setViajeDirigido("")
-    setNumeroPuntosRecojo(1)
-    setPuntosRecojo([{ ...puntoVacio }])
-    setHoraInicial("")
-    setHoraLlegada("")
-    setFechaServicio("")
-    setObservaciones("")
-  }
+  const validarFormulario = () => {
+    if (!clienteNombre.trim()) return "Ingresa el nombre del cliente.";
+    if (!nombreContacto.trim()) return "Ingresa el nombre del contacto.";
+    if (!telefonoContacto.trim()) return "Ingresa el teléfono del contacto.";
+    if (!modalidad) return "Selecciona la modalidad.";
+    if (!dirigidoA) return "Selecciona a qué está dirigido el servicio.";
+    if (!fechaServicio) return "Selecciona la fecha del servicio.";
+    if (!horaInicio) return "Ingresa la hora inicial estimada.";
+    if (!horaLlegada) return "Ingresa la hora de llegada estimada.";
+    if (!destinoFinalDireccion.trim()) return "Ingresa la dirección del punto final.";
+    if (!destinoFinalUbicacion.trim()) return "Ingresa el link de Google Maps del punto final.";
 
-  const descargarSolicitud = (solicitud: SolicitudCreada) => {
-    const pdf = new jsPDF("p", "mm", "a4")
-    const codigo = solicitud.codigoSolicitud || "solicitud"
-    const fechaDescarga = new Date().toLocaleString("es-PE")
-
-    pdf.setFontSize(18)
-    pdf.setFont("helvetica", "bold")
-    pdf.text("M. RIVAS TRANSERVICE", 14, 18)
-
-    pdf.setFontSize(14)
-    pdf.text("SOLICITUD DE NUEVO SERVICIO", 14, 28)
-
-    pdf.setFontSize(9)
-    pdf.setFont("helvetica", "normal")
-    pdf.text(`Documento generado: ${fechaDescarga}`, 14, 35)
-
-    autoTable(pdf, {
-      startY: 42,
-      head: [["Campo", "Detalle"]],
-      body: [
-        ["Código de solicitud", solicitud.codigoSolicitud],
-        ["Estado", solicitud.estado],
-        ["Cliente", solicitud.cliente],
-        ["Contacto cliente", solicitud.contactoNombre],
-        ["Teléfono contacto", solicitud.contactoTelefono],
-        ["Modalidad", solicitud.modalidad],
-        ["Viaje dirigido a", solicitud.viajeDirigido],
-        ["Número de puntos de recojo", String(solicitud.numeroPuntosRecojo)],
-        ["Fecha de servicio", solicitud.fechaServicio],
-        ["Hora inicial estimada", solicitud.horaInicial],
-        ["Hora llegada estimada", solicitud.horaLlegada],
-        ["Solicitante", solicitud.solicitanteEmail],
-        ["Rol solicitante", solicitud.solicitanteRol],
-      ],
-    })
-
-    autoTable(pdf, {
-      startY: (pdf as any).lastAutoTable.finalY + 10,
-      head: [["#", "Personal / contacto", "Dirección", "Google Maps", "Teléfono"]],
-      body:
-        solicitud.puntosRecojo?.map((punto, index) => [
-          String(index + 1),
-          punto.personal || "-",
-          punto.direccion || "-",
-          punto.googleMaps || "-",
-          punto.telefono || "-",
-        ]) || [["-", "-", "-", "-", "-"]],
-    })
-
-    autoTable(pdf, {
-      startY: (pdf as any).lastAutoTable.finalY + 10,
-      head: [["Observaciones adicionales"]],
-      body: [[solicitud.observaciones || "-"]],
-    })
-
-    pdf.save(`${codigo}_solicitud_nuevo_servicio.pdf`)
-  }
-
-  const validarPuntosRecojo = () => {
-    for (let i = 0; i < puntosRecojo.length; i++) {
-      const punto = puntosRecojo[i]
-
-      if (!punto.personal || !punto.direccion) {
-        alert(`Completa Personal / contacto y Dirección del punto de recojo ${i + 1}`)
-        return false
-      }
-
-      if (punto.telefono && punto.telefono.length !== 9) {
-        alert(`El teléfono del punto de recojo ${i + 1} debe tener 9 dígitos`)
-        return false
-      }
+    for (const punto of puntosRecojo) {
+      if (!punto.persona.trim()) return `Ingresa la persona del punto ${punto.numero}.`;
+      if (!punto.direccion.trim()) return `Ingresa la dirección del punto ${punto.numero}.`;
+      if (!punto.ubicacionGoogleMaps.trim()) return `Ingresa el link de Google Maps del punto ${punto.numero}.`;
+      if (!punto.telefono.trim()) return `Ingresa el teléfono del punto ${punto.numero}.`;
     }
 
-    return true
-  }
+    return null;
+  };
 
-  const enviarSolicitud = async () => {
-    if (
-      !cliente ||
-      !contactoNombre ||
-      !contactoTelefono ||
-      !modalidad ||
-      !viajeDirigido ||
-      !horaInicial ||
-      !horaLlegada ||
-      !fechaServicio
-    ) {
-      alert("Completa los campos obligatorios")
-      return
+  const crearSolicitud = async () => {
+    const error = validarFormulario();
+    if (error) {
+      alert(error);
+      return;
     }
-
-    if (contactoTelefono.length !== 9) {
-      alert("El teléfono contacto cliente debe tener exactamente 9 dígitos")
-      return
-    }
-
-    if (!validarPuntosRecojo()) return
 
     try {
-      const codigoSolicitud = `SOL-${Date.now()}`
-
-      const nuevaSolicitud: SolicitudCreada = {
-        codigoSolicitud,
-        cliente,
-        contactoNombre,
-        contactoTelefono,
-        modalidad,
-        viajeDirigido,
-        numeroPuntosRecojo,
-        puntosRecojo,
-        horaInicial,
-        horaLlegada,
-        fechaServicio,
-        observaciones,
-        estado: "pendiente",
-        solicitanteEmail: user?.email || "No identificado",
-        solicitanteRol: user?.role || "No identificado",
-      }
+      setGuardando(true);
+      const user = auth.currentUser;
 
       await addDoc(collection(db, "solicitudes_servicio"), {
-        ...nuevaSolicitud,
-        creadoEn: new Date(),
-      })
+        codigoSolicitud,
 
-      setSolicitudCreada(nuevaSolicitud)
-      limpiarFormulario()
+        cliente: clienteNombre,
+        clienteNombre,
+
+        contactoNombre: nombreContacto,
+        nombreContacto,
+
+        contactoTelefono: telefonoContacto,
+        telefonoContacto,
+
+        modalidad,
+        contenido: dirigidoA,
+        dirigidoA,
+
+        fechaRecojo: fechaServicio,
+        fechaServicio,
+
+        horaRecojo: horaInicio,
+        horaInicio,
+
+        horaLlegada,
+        observaciones,
+
+        destinoFinal: {
+          direccion: destinoFinalDireccion,
+          ubicacionGoogleMaps: destinoFinalUbicacion,
+          referencia: destinoFinalReferencia,
+        },
+
+        linkDestinoMaps: destinoFinalUbicacion,
+
+        puntosRecojo,
+        cantidadPuntos,
+
+        estado: "pendiente_ofertas",
+        conductor: "",
+        vehiculo: "",
+
+        creadoPorUid: user?.uid || null,
+        creadoPorEmail: user?.email || null,
+        creadoEn: serverTimestamp(),
+      });
+
+      alert("Solicitud creada correctamente.");
+      window.location.reload();
     } catch (error) {
-      console.error(error)
-      alert("Error al guardar la solicitud")
+      console.error(error);
+      alert("Ocurrió un error al crear la solicitud.");
+    } finally {
+      setGuardando(false);
     }
-  }
+  };
 
   return (
-    <div style={styles.layout}>
-      <Sidebar />
+    <>
+      <style>{`
+        .nuevo-servicio-layout {
+          display: flex;
+          min-height: 100vh;
+          background: #f3f6fb;
+        }
 
-      <main style={styles.content}>
-        <h1 style={styles.title}>Solicitud de Nuevo Servicio</h1>
+        .nuevo-servicio-main {
+          flex: 1;
+          width: 100%;
+          min-width: 0;
+        }
 
-        <p style={styles.subtitle}>
-          Registra una solicitud para que sea revisada y aprobada posteriormente.
-        </p>
+        .nuevo-servicio-page {
+          min-height: 100vh;
+          background: #f3f6fb;
+          padding: 24px;
+        }
 
-        <div style={styles.userInfo}>
-          <strong>Solicitante:</strong> {user?.email || "No identificado"}
-        </div>
+        .nuevo-servicio-container {
+          max-width: 1100px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 22px;
+          padding: 28px;
+          box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+        }
 
-        <div style={styles.formCard}>
-          <div style={styles.grid}>
-            <Field label="Cliente">
-              <select style={styles.input} value={cliente} onChange={(e) => setCliente(e.target.value)}>
-                <option value="">Seleccionar cliente</option>
-                <option>CENS</option>
-                <option>ARPL</option>
-                <option>UNACEM</option>
-                <option>Cliente particular</option>
-                <option>Otro</option>
-              </select>
-            </Field>
+        .nuevo-servicio-header {
+          margin-bottom: 24px;
+        }
 
-            <Field label="Nombre contacto cliente">
-              <input style={styles.input} value={contactoNombre} onChange={(e) => setContactoNombre(e.target.value)} />
-            </Field>
+        .nuevo-servicio-title {
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f2f5f;
+          margin: 0 0 8px;
+        }
 
-            <Field label="Teléfono contacto cliente">
-              <input
-                style={styles.input}
-                value={contactoTelefono}
-                onChange={(e) => handleTelefonoChange(e.target.value)}
-                placeholder="Ejemplo: 987654321"
-                maxLength={9}
-              />
-            </Field>
+        .nuevo-servicio-subtitle {
+          color: #64748b;
+          margin: 0;
+          font-size: 15px;
+        }
 
-            <Field label="Seleccione modalidad">
-              <select style={styles.input} value={modalidad} onChange={(e) => setModalidad(e.target.value)}>
-                <option value="">Seleccionar modalidad</option>
-                <option>Fijo</option>
-                <option>Eventual</option>
-              </select>
-            </Field>
+        .section-card {
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 20px;
+          margin-bottom: 22px;
+          background: #ffffff;
+        }
 
-            <Field label="El viaje es dirigido a">
-              <select style={styles.input} value={viajeDirigido} onChange={(e) => setViajeDirigido(e.target.value)}>
-                <option value="">Seleccionar opción</option>
-                <option>Cajas</option>
-                <option>Personal</option>
-                <option>Documentos</option>
-                <option>Equipos</option>
-                <option>Otros</option>
-              </select>
-            </Field>
+        .section-card.highlight {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+        }
 
-            <Field label="Número de puntos de recojo">
-              <input
-                type="number"
-                min={1}
-                max={20}
-                style={styles.input}
-                value={numeroPuntosRecojo}
-                onChange={(e) => actualizarCantidadPuntos(Number(e.target.value))}
-              />
-            </Field>
+        .section-title {
+          font-size: 18px;
+          font-weight: 800;
+          color: #0f2f5f;
+          margin: 0 0 16px;
+        }
 
-            <Field label="Hora inicial de viaje estimada">
-              <input type="time" style={styles.input} value={horaInicial} onChange={(e) => setHoraInicial(e.target.value)} />
-            </Field>
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
 
-            <Field label="Hora llegada estimada">
-              <input type="time" style={styles.input} value={horaLlegada} onChange={(e) => setHoraLlegada(e.target.value)} />
-            </Field>
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
 
-            <Field label="Fecha de servicio">
-              <input type="date" style={styles.input} value={fechaServicio} onChange={(e) => setFechaServicio(e.target.value)} />
-            </Field>
-          </div>
+        .form-group.full {
+          grid-column: 1 / -1;
+        }
 
-          <button style={styles.secondaryButton} onClick={() => setMostrarModalPuntos(true)}>
-            Gestionar puntos de recojo ({puntosRecojo.length})
-          </button>
+        .form-label {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1e293b;
+        }
 
-          <Field label="Observaciones adicionales">
-            <textarea style={styles.textarea} value={observaciones} onChange={(e) => setObservaciones(e.target.value)} />
-          </Field>
+        .form-input,
+        .form-select,
+        .form-textarea {
+          width: 100%;
+          border: 1px solid #cbd5e1;
+          border-radius: 12px;
+          padding: 12px 14px;
+          font-size: 15px;
+          outline: none;
+          background: #ffffff;
+          color: #0f172a;
+          box-sizing: border-box;
+        }
 
-          <div style={styles.actions}>
-            <button style={styles.cancelButton} onClick={limpiarFormulario}>
-              Cancelar
-            </button>
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
 
-            <button style={styles.submitButton} onClick={enviarSolicitud}>
-              Enviar Solicitud
-            </button>
-          </div>
-        </div>
-      </main>
+        .readonly {
+          background: #f8fafc;
+          font-weight: 700;
+          color: #334155;
+        }
 
-      {mostrarModalPuntos && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalLarge}>
-            <button style={styles.xButton} onClick={() => setMostrarModalPuntos(false)}>
-              ×
-            </button>
+        .puntos-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
 
-            <h2 style={styles.modalTitle}>Puntos de recojo</h2>
+        .punto-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 18px;
+          margin-bottom: 16px;
+        }
 
-            <p style={styles.modalSubtitle}>
-              Registra uno o más puntos de recojo. Los campos obligatorios son Personal / contacto y Dirección.
-            </p>
+        .punto-title {
+          font-size: 16px;
+          font-weight: 800;
+          color: #0f2f5f;
+          margin: 0 0 14px;
+        }
 
-            {puntosRecojo.map((punto, index) => (
-              <div key={index} style={styles.puntoCard}>
-                <div style={styles.puntoHeader}>
-                  <h3 style={styles.puntoTitle}>Punto #{index + 1}</h3>
+        .actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 24px;
+        }
 
-                  {puntosRecojo.length > 1 && (
-                    <button style={styles.deletePointButton} onClick={() => eliminarPuntoRecojo(index)}>
-                      Eliminar
-                    </button>
-                  )}
+        .btn-primary {
+          border: none;
+          border-radius: 14px;
+          background: #0f2f5f;
+          color: white;
+          padding: 14px 24px;
+          font-weight: 800;
+          font-size: 15px;
+          cursor: pointer;
+          min-width: 180px;
+        }
+
+        .btn-primary:hover {
+          background: #123f80;
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 900px) {
+          .nuevo-servicio-page {
+            padding: 76px 14px 14px;
+          }
+
+          .nuevo-servicio-container {
+            padding: 18px;
+            border-radius: 18px;
+          }
+
+          .nuevo-servicio-title {
+            font-size: 23px;
+          }
+
+          .form-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .puntos-header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .actions {
+            justify-content: stretch;
+          }
+
+          .btn-primary {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      <div className="nuevo-servicio-layout">
+        <Sidebar />
+
+        <main className="nuevo-servicio-main">
+          <div className="nuevo-servicio-page">
+            <div className="nuevo-servicio-container">
+              <div className="nuevo-servicio-header">
+                <h1 className="nuevo-servicio-title">Nueva Solicitud de Servicio</h1>
+                <p className="nuevo-servicio-subtitle">
+                  Registra la solicitud con puntos de recojo, punto final común y datos operativos.
+                </p>
+              </div>
+
+              <div className="section-card">
+                <div className="form-group">
+                  <label className="form-label">Código de solicitud</label>
+                  <input className="form-input readonly" value={codigoSolicitud} readOnly />
+                </div>
+              </div>
+
+              <div className="section-card">
+                <h2 className="section-title">Datos generales</h2>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Cliente</label>
+                    <select
+    className="form-select"
+    value={clienteNombre}
+    onChange={(e) => setClienteNombre(e.target.value)}
+  >
+    <option value="">Seleccionar cliente</option>
+    <option value="ARPL">ARPL</option>
+    <option value="UNACEM">UNACEM</option>
+    <option value="UNICOM">UNICOM</option>
+    <option value="CONCREMAX">CONCREMAX</option>
+  </select>
+</div>
+
+                  <div className="form-group">
+                    <label className="form-label">Nombre de contacto</label>
+                    <input className="form-input" value={nombreContacto} onChange={(e) => setNombreContacto(e.target.value)} placeholder="Ej: Juan Pérez" />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Teléfono de contacto</label>
+                    <input className="form-input" value={telefonoContacto} onChange={(e) => setTelefonoContacto(e.target.value)} placeholder="Ej: 999999999" maxLength={9} />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Modalidad</label>
+                    <select className="form-select" value={modalidad} onChange={(e) => setModalidad(e.target.value)}>
+                      <option value="">Seleccionar</option>
+                      <option value="Fijo">Fijo</option>
+                      <option value="Eventual">Eventual</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Dirigido a</label>
+                    <select className="form-select" value={dirigidoA} onChange={(e) => setDirigidoA(e.target.value)}>
+                      <option value="">Seleccionar</option>
+                      <option value="Personal">Personal</option>
+                      <option value="Cajas">Cajas</option>
+                      <option value="Documentos">Documentos</option>
+                      <option value="Equipos">Equipos</option>
+                      <option value="Otros">Otros</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Fecha del servicio</label>
+                    <input className="form-input" type="date" value={fechaServicio} onChange={(e) => setFechaServicio(e.target.value)} />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Hora inicial estimada</label>
+                    <input className="form-input" type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Hora llegada estimada</label>
+                    <input className="form-input" type="time" value={horaLlegada} onChange={(e) => setHoraLlegada(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="section-card highlight">
+                <h2 className="section-title">Punto final común</h2>
+
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label className="form-label">Dirección final</label>
+                    <input className="form-input" value={destinoFinalDireccion} onChange={(e) => setDestinoFinalDireccion(e.target.value)} placeholder="Ej: Av. Javier Prado 123, San Isidro" />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Ubicación Google Maps final</label>
+                    <input className="form-input" value={destinoFinalUbicacion} onChange={(e) => setDestinoFinalUbicacion(e.target.value)} placeholder="Pegar link de Google Maps" />
+                  </div>
+
+                  <div className="form-group full">
+                    <label className="form-label">Referencia final</label>
+                    <input className="form-input" value={destinoFinalReferencia} onChange={(e) => setDestinoFinalReferencia(e.target.value)} placeholder="Ej: puerta principal, garita, recepción, almacén" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="section-card">
+                <div className="puntos-header">
+                  <div>
+                    <h2 className="section-title">Puntos de recojo</h2>
+                    <p className="nuevo-servicio-subtitle">
+                      Los conductores podrán ofertar por todos o por puntos específicos.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Cantidad de puntos</label>
+                    <select className="form-select" value={cantidadPuntos} onChange={(e) => actualizarCantidadPuntos(Number(e.target.value))}>
+                      {Array.from({ length: 20 }, (_, index) => (
+                        <option key={index + 1} value={index + 1}>{index + 1}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <input
-                  style={styles.input}
-                  placeholder="Personal / contacto *"
-                  value={punto.personal}
-                  onChange={(e) => actualizarPunto(index, "personal", e.target.value)}
-                />
+                {puntosRecojo.map((punto, index) => (
+                  <div className="punto-card" key={punto.numero}>
+                    <h3 className="punto-title">Punto {punto.numero}</h3>
 
-                <input
-                  style={styles.input}
-                  placeholder="Dirección *"
-                  value={punto.direccion}
-                  onChange={(e) => actualizarPunto(index, "direccion", e.target.value)}
-                />
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label className="form-label">Persona / responsable</label>
+                        <input className="form-input" value={punto.persona} onChange={(e) => actualizarPunto(index, "persona", e.target.value)} placeholder="Ej: Juan Pérez" />
+                      </div>
 
-                <input
-                  style={styles.input}
-                  placeholder="Ubicación Google Maps"
-                  value={punto.googleMaps}
-                  onChange={(e) => actualizarPunto(index, "googleMaps", e.target.value)}
-                />
+                      <div className="form-group">
+                        <label className="form-label">Teléfono</label>
+                        <input className="form-input" value={punto.telefono} onChange={(e) => actualizarPunto(index, "telefono", e.target.value)} placeholder="Ej: 999999999" maxLength={9} />
+                      </div>
 
-                <input
-                  style={styles.input}
-                  placeholder="Número teléfono"
-                  value={punto.telefono}
-                  maxLength={9}
-                  onChange={(e) => actualizarPunto(index, "telefono", e.target.value)}
-                />
+                      <div className="form-group">
+                        <label className="form-label">Dirección de recojo</label>
+                        <input className="form-input" value={punto.direccion} onChange={(e) => actualizarPunto(index, "direccion", e.target.value)} placeholder="Ej: Av. Primavera 500, Surco" />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Ubicación Google Maps</label>
+                        <input className="form-input" value={punto.ubicacionGoogleMaps} onChange={(e) => actualizarPunto(index, "ubicacionGoogleMaps", e.target.value)} placeholder="Pegar link de Google Maps" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
 
-            <button style={styles.addPointButton} onClick={agregarPuntoRecojo}>
-              + Agregar otro punto de recojo
-            </button>
+              <div className="section-card">
+                <div className="form-group">
+                  <label className="form-label">Observaciones generales</label>
+                  <textarea className="form-textarea" value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows={4} placeholder="Agregar indicaciones especiales del servicio..." />
+                </div>
+              </div>
 
-            <button style={styles.submitButtonFull} onClick={() => setMostrarModalPuntos(false)}>
-              Guardar y cerrar ventana
-            </button>
-          </div>
-        </div>
-      )}
-
-      {solicitudCreada && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h2 style={styles.modalTitle}>Solicitud creada correctamente</h2>
-
-            <p style={styles.modalText}>
-              Solicitud N° <strong>{solicitudCreada.codigoSolicitud}</strong>
-            </p>
-
-            <p style={styles.modalSmall}>
-              La solicitud fue registrada con estado <strong>pendiente</strong>.
-            </p>
-
-            <div style={styles.modalActions}>
-              <button style={styles.downloadButton} onClick={() => descargarSolicitud(solicitudCreada)}>
-                Descargar PDF
-              </button>
-
-              <button style={styles.closeButton} onClick={() => setSolicitudCreada(null)}>
-                Cerrar
-              </button>
+              <div className="actions">
+                <button className="btn-primary" onClick={crearSolicitud} disabled={guardando}>
+                  {guardando ? "Guardando..." : "Crear solicitud"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label style={styles.field}>
-      <span style={styles.label}>{label}</span>
-      {children}
-    </label>
-  )
-}
-
-const styles = {
-  layout: {
-    display: "flex",
-    minHeight: "100vh",
-    background: "#f4f6f8",
-  },
-
-  content: {
-    flex: 1,
-    padding: "30px",
-  },
-
-  title: {
-    fontSize: "32px",
-    marginBottom: "10px",
-  },
-
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "15px",
-  },
-
-  userInfo: {
-    marginBottom: "25px",
-    background: "#e5eefc",
-    padding: "12px",
-    borderRadius: "10px",
-    color: "#0b1f3a",
-    fontWeight: "bold",
-  },
-
-  formCard: {
-    background: "#fff",
-    padding: "30px",
-    borderRadius: "18px",
-    boxShadow: "0 6px 20px rgba(0,0,0,0.08)",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "22px",
-    marginBottom: "20px",
-  },
-
-  field: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "8px",
-  },
-
-  label: {
-    fontWeight: "bold",
-    fontSize: "15px",
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box" as const,
-    padding: "14px",
-    borderRadius: "10px",
-    border: "1px solid #d1d5db",
-    fontSize: "15px",
-    outline: "none",
-    marginBottom: "10px",
-  },
-
-  textarea: {
-    width: "100%",
-    minHeight: "120px",
-    padding: "14px",
-    borderRadius: "10px",
-    border: "1px solid #d1d5db",
-    resize: "vertical" as const,
-    fontSize: "15px",
-    boxSizing: "border-box" as const,
-    marginTop: "10px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "15px",
-    marginTop: "25px",
-  },
-
-  cancelButton: {
-    flex: 1,
-    background: "#374151",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  submitButton: {
-    flex: 1,
-    background: "#0b1f3a",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  submitButtonFull: {
-    width: "100%",
-    background: "#0b1f3a",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    marginTop: "15px",
-  },
-
-  secondaryButton: {
-    background: "#e5eefc",
-    color: "#0b1f3a",
-    border: "1px solid #bfdbfe",
-    padding: "12px 16px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    marginBottom: "22px",
-  },
-
-  modalOverlay: {
-    position: "fixed" as const,
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "rgba(0,0,0,0.45)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-
-  modal: {
-    background: "#fff",
-    padding: "30px",
-    borderRadius: "18px",
-    width: "420px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
-    textAlign: "center" as const,
-  },
-
-  modalLarge: {
-    position: "relative" as const,
-    background: "#fff",
-    padding: "30px",
-    borderRadius: "18px",
-    width: "760px",
-    maxWidth: "90vw",
-    maxHeight: "85vh",
-    overflowY: "auto" as const,
-    boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
-  },
-
-  xButton: {
-    position: "absolute" as const,
-    top: "14px",
-    right: "18px",
-    background: "transparent",
-    border: "none",
-    fontSize: "26px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    color: "#374151",
-  },
-
-  modalTitle: {
-    fontSize: "24px",
-    marginBottom: "10px",
-    color: "#0b1f3a",
-  },
-
-  modalSubtitle: {
-    color: "#6b7280",
-    marginBottom: "20px",
-  },
-
-  puntoCard: {
-    border: "1px solid #d1d5db",
-    borderRadius: "12px",
-    padding: "15px",
-    marginBottom: "20px",
-  },
-
-  puntoHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "10px",
-  },
-
-  puntoTitle: {
-    margin: 0,
-    color: "#0b1f3a",
-  },
-
-  deletePointButton: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    border: "1px solid #fecaca",
-    borderRadius: "8px",
-    padding: "8px 10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  addPointButton: {
-    width: "100%",
-    background: "#f8fafc",
-    color: "#0b1f3a",
-    border: "1px dashed #94a3b8",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  modalText: {
-    fontSize: "18px",
-    marginBottom: "8px",
-  },
-
-  modalSmall: {
-    color: "#6b7280",
-    marginBottom: "24px",
-  },
-
-  modalActions: {
-    display: "flex",
-    gap: "12px",
-  },
-
-  downloadButton: {
-    flex: 1,
-    background: "#2563eb",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  closeButton: {
-    flex: 1,
-    background: "#374151",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
+        </main>
+      </div>
+    </>
+  );
 }

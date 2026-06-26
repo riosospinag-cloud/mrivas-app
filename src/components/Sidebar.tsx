@@ -1,11 +1,26 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 export default function Sidebar() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900)
 
-  const isMobile = window.innerWidth <= 768
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 900
+      setIsMobile(mobile)
+
+      if (!mobile) {
+        setOpen(false)
+      }
+    }
+
+    window.addEventListener("resize", handleResize)
+    handleResize()
+
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   const goTo = (path: string) => {
     navigate(path)
@@ -14,7 +29,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {isMobile && !open && (
+      {isMobile && (
         <button style={styles.mobileMenuButton} onClick={() => setOpen(true)}>
           ☰
         </button>
@@ -28,9 +43,9 @@ export default function Sidebar() {
         style={{
           ...styles.sidebar,
           position: isMobile ? "fixed" : "sticky",
-          width: isMobile ? "78vw" : "250px",
-          maxWidth: isMobile ? "320px" : "250px",
-          minWidth: isMobile ? "0" : "250px",
+          width: isMobile ? "82vw" : "260px",
+          maxWidth: isMobile ? "330px" : "260px",
+          minWidth: isMobile ? "0" : "260px",
           transform: isMobile
             ? open
               ? "translateX(0)"
@@ -51,18 +66,18 @@ export default function Sidebar() {
             🏠 Inicio
           </li>
 
-          <li
-            style={styles.item}
-            onClick={() => goTo("/superadmin/nuevo-servicio")}
-          >
+          <li style={styles.item} onClick={() => goTo("/superadmin/nuevo-servicio")}>
             ➕ Nuevo Servicio
           </li>
 
+          <li style={styles.item} onClick={() => goTo("/superadmin/aprobaciones")}>
+            ✅ Aprobación Solicitudes
+          </li>
           <li
             style={styles.item}
-            onClick={() => goTo("/superadmin/aprobaciones")}
+            onClick={() => goTo("/superadmin/clientes")}
           >
-            ✅ Aprobación Solicitudes
+            🏢 Clientes
           </li>
 
           <li style={styles.item}>👤 Conductores</li>
@@ -82,14 +97,14 @@ const styles: any = {
     position: "fixed",
     top: "16px",
     left: "16px",
-    zIndex: 1200,
+    zIndex: 3000,
     background: "#0b1f3a",
     color: "#ffffff",
     border: "none",
     borderRadius: "12px",
-    width: "44px",
-    height: "44px",
-    fontSize: "22px",
+    width: "46px",
+    height: "46px",
+    fontSize: "24px",
     cursor: "pointer",
     boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
   },
@@ -98,7 +113,7 @@ const styles: any = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.45)",
-    zIndex: 999,
+    zIndex: 2500,
   },
 
   sidebar: {
@@ -107,9 +122,9 @@ const styles: any = {
     height: "100vh",
     background: "#0b1f3a",
     color: "#ffffff",
-    padding: "24px",
+    padding: "28px 24px",
     boxSizing: "border-box",
-    zIndex: 1000,
+    zIndex: 2800,
     transition: "transform 0.25s ease",
     overflowY: "auto",
   },
@@ -122,16 +137,16 @@ const styles: any = {
     color: "#ffffff",
     border: "none",
     borderRadius: "10px",
-    width: "36px",
-    height: "36px",
+    width: "38px",
+    height: "38px",
     fontSize: "18px",
     cursor: "pointer",
   },
 
   logo: {
-    marginTop: "18px",
-    marginBottom: "32px",
-    fontSize: "28px",
+    marginTop: "26px",
+    marginBottom: "34px",
+    fontSize: "30px",
     fontWeight: "bold",
   },
 
@@ -142,9 +157,10 @@ const styles: any = {
   },
 
   item: {
-    marginBottom: "20px",
+    marginBottom: "22px",
     cursor: "pointer",
-    fontSize: "18px",
+    fontSize: "20px",
     lineHeight: 1.25,
+    fontWeight: 500,
   },
 }
